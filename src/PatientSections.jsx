@@ -18,10 +18,9 @@ function saveCalendarInvite(){
   URL.revokeObjectURL(url)
 }
 
-export default function PatientSections({section,tasks,toggle,setShowAdd,notify,setSection}){
+export default function PatientSections({section,tasks,toggle,setShowAdd,notify,setSection,savedDrafts,setSavedDrafts}){
   const [selectedFile,setSelectedFile]=useState(null)
   const [draft,setDraft]=useState('')
-  const [savedDrafts,setSavedDrafts]=useState([])
   const title={checklist:'Your checklist',documents:'Your documents',appointments:'Appointments',messages:'Messages'}[section]||'My journey'
   const subtitle={checklist:'Your next steps, all in one calm place.',documents:'Keep the documents you may want to share with your care team in view.',appointments:'Your upcoming clinic visit and calendar details.',messages:'A simple place to prepare a message for your care team.'}[section]||''
   return <div className="patient-subpage">
