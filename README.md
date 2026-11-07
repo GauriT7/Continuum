@@ -1,48 +1,25 @@
-# Continuum — Care, connected.
+[README.md](https://github.com/user-attachments/files/34514230/README.md)
+# Continuum Supabase API patch
 
-A fresh, role-based redesign for the MaatriLoop / Elara concept.
+This patch adds a Supabase-authenticated task API to the existing Vite/Vercel project.
 
-## Workspaces
-- **My Journey** — patient/couple experience with an approachable checklist, journey timeline, appointments and documents.
-- **Care Desk** — clinic operations overview, patient journeys, task queue, document inbox and communication.
-- **Field Desk** — mobile-friendly beneficiary follow-ups, route list and voice-first update entry point.
+## Files
+- `package.json`: adds `@supabase/supabase-js`
+- `api/_lib/supabase.js`: creates a request-scoped Supabase client using the caller's bearer token
+- `api/tasks.js`: GET, POST and PATCH task operations
 
-## Design system
-The three workspaces use separate accent systems:
-- Patient: botanical green / warm ivory
-- Care team: muted indigo / cool neutrals
-- Field team: terracotta / sand
+## Vercel environment variables
+Add these to Vercel Project Settings -> Environment Variables:
+- `SUPABASE_URL`: Supabase Project URL
+- `SUPABASE_ANON_KEY`: Supabase publishable/anon key
 
-The UI uses Manrope + DM Sans, Lucide icons, responsive layouts and Framer Motion transitions. The design intentionally keeps AI out of the way; the interface is organised around the user's job, not a generic chat box.
+Do not use a service-role key in this frontend-connected API. The caller's access token is passed through so Supabase RLS applies.
 
-## Run locally
-```bash
-npm install
-npm run dev
-```
-Open the local Vite URL.
+## Routes
+- `GET /api/tasks` (Bearer token required)
+- `GET /api/tasks?patient_id=<uuid>` (Bearer token required)
+- `GET /api/tasks?status=pending` (Bearer token required)
+- `POST /api/tasks` with JSON `{ "clinic_id":"...", "patient_id":"...", "title":"..." }`
+- `PATCH /api/tasks` with JSON `{ "id":"...", "status":"completed" }`
 
-## Build
-```bash
-npm run build
-npm run preview
-```
-
-## GitHub Pages
-This project uses a relative Vite base (`./`) so it can be hosted from a repository subpath. In GitHub, enable Pages using GitHub Actions or deploy the `dist` folder from your preferred workflow.
-
-## Current implementation status
-This is a polished interactive frontend prototype using synthetic demo content. Workspace switching, navigation, search/filtering, task completion, task creation, notifications and patient detail selection work locally.
-
-The document upload, message composer, voice capture, backend, authentication, database and Sarvam API calls are currently UI entry points only. They are not wired to production services yet.
-
-## Product and safety boundaries
-The app coordinates clinician-approved administrative tasks. It must not determine investigations, interpret results, recommend care pathways or make clinical decisions. Use synthetic data only until authentication, role-based access, consent, encryption, audit logging, retention/deletion controls and data governance are implemented.
-
-## Sarvam integration plan
-Keep all Sarvam API calls behind a server-side gateway. Never expose `SARVAM_API_KEY` in Vite/browser code. Suggested service boundaries:
-- Vision/document parsing: extract administrative document metadata for human confirmation.
-- Saaras speech-to-text: transcribe patient or field-worker voice updates.
-- Translate: prepare patient communications in the selected language.
-- Bulbul text-to-speech: play approved workflow messages.
-- LLM/tool calling: propose task events; require human approval before updating authoritative records or sending messages.
+All operations require a valid Supabase user session and clinic membership enforced by database RLS.
