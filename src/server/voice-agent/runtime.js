@@ -7,7 +7,7 @@ export const LANGUAGES = Object.freeze({
 });
 export const DISPOSITIONS = Object.freeze([
   'message_delivered','callback_requested','reschedule_requested','wrong_person','opted_out',
-  'no_answer','busy','failed','incomplete','unknown',
+  'no_answer','busy','failed','incomplete','unknown','emergency_redirected','clinical_query_redirected',
 ]);
 export const WEBHOOK_STATUSES = Object.freeze(['connected','no_answer','busy','failed']);
 
@@ -161,18 +161,24 @@ export async function createSarvamInstantOutbound(call,config) {
 }
 export function deriveOutcome({payload}) {
   const raw=payload?.final_agent_variables||{};
-  const recipientResponse=String(raw.recipient_response||'unclear').toLowerCase();
+  let recipientResponse=String(raw.recipient_response||'unclear').toLowerCase();
   const allowedResponses=new Set(['confirmed','repeated_and_confirmed','cannot_attend','callback_requested','wrong_person','opted_out','clinical_question_redirected','emergency_reported','unclear','no_response']);
-  const response=allowedResponses.has(recipientResponse)?recipientResponse:'unclear';
+  let response=allowedResponses.has(recipientResponse)?recipientResponse:'unclear';
   const identityVerified=bool(raw.identity_verified);
   const wrongNumber=bool(raw.wrong_number)||response==='wrong_person';
   const optOut=bool(raw.opt_out)||response==='opted_out';
   const callbackRequested=bool(raw.callback_requested)||response==='callback_requested';
   const rescheduleRequested=bool(raw.reschedule_requested)||response==='cannot_attend';
-  let disposition=String(raw.call_disposition||'unknown').toLowerCase();
+  const rawDisposition=String(raw.call_disposition||'unknown').toLowerCase();
+  const aliases={acknowledged:'message_delivered',repeat_requested:'incomplete',wrong_number:'wrong_person',opt_out:'opted_out',identity_not_verified:'incomplete',no_response:'no_answer',ended_early:'incomplete'};
+  let disposition=aliases[rawDisposition]||rawDisposition;
+  const emergencyRedirected=disposition==='emergency_redirected'||response==='emergency_reported';
+  const clinicalRedirected=disposition==='clinical_query_redirected'||response==='clinical_question_redirected';
+  if(emergencyRedirected) response='emergency_reported';
+  else if(clinicalRedirected) response='clinical_question_redirected';
   if(!DISPOSITIONS.includes(disposition)) disposition='unknown';
   if(wrongNumber) disposition='wrong_person'; else if(optOut) disposition='opted_out'; else if(rescheduleRequested) disposition='reschedule_requested'; else if(callbackRequested) disposition='callback_requested';
-  const messageDelivered=payload.status==='connected'&&bool(raw.message_delivered)&&identityVerified&&!wrongNumber&&!optOut&&response!=='emergency_reported';
+  const messageDelivered=payload.status==='connected'&&bool(raw.message_delivered)&&identityVerified&&!wrongNumber&&!optOut&&response!=='emergency_reported'&&!emergencyRedirected&&!clinicalRedirected;
   const transcript=Array.isArray(payload.interaction_transcript)?payload.interaction_transcript.filter(t=>t&&(t.role==='agent'||t.role==='user')&&typeof t.en_text==='string').slice(0,60).map(t=>({role:t.role,text:String(t.en_text).slice(0,1200)})):null;
   const vars={};
   for(const key of ['identity_verified','call_disposition','recipient_response','callback_requested','reschedule_requested','opt_out','wrong_number','message_delivered']){
