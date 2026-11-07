@@ -33,6 +33,9 @@ alter table public.documents
   add column if not exists source_system text not null default 'manual_upload',
   add column if not exists external_record_reference text,
   add column if not exists external_consent_reference text;
+alter table public.documents drop constraint if exists documents_source_system_check;
+alter table public.documents add constraint documents_source_system_check
+  check (source_system in ('manual_upload','abdm_export','uwin_export'));
 
 -- Consent audit references only; do not put health-record contents in this table.
 create table if not exists public.abdm_consent_audit (
