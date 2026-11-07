@@ -1,4 +1,3 @@
-\
 import { getSupabaseForRequest } from './_lib/supabase.js'
 
 const SARVAM = 'https://api.sarvam.ai'
