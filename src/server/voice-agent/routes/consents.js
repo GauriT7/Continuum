@@ -1,5 +1,5 @@
-import { requireVoiceStaff,fail,bodyOf,getPatientForStaff,latestConsent } from '../_lib/voice-agent.js';
-import { normalizePhone,calculateAge } from '../../src/server/voice-agent/runtime.js';
+import { requireVoiceStaff,fail,bodyOf,getPatientForStaff,latestConsent } from '../../../../api/_lib/voice-agent.js';
+import { normalizePhone,calculateAge } from '../runtime.js';
 const sources=new Set(['verbal_in_clinic','written_form','digital_form','phone_confirmation']);
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');

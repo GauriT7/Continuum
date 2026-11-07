@@ -1,5 +1,5 @@
-import { createVoiceConfig, safeEqual } from '../../../src/server/voice-agent/runtime.js';
-import { adminDb, fail } from '../../_lib/voice-agent.js';
+import { createVoiceConfig, safeEqual } from '../runtime.js';
+import { adminDb, fail } from '../../../../api/_lib/voice-agent.js';
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   if(!['GET','POST'].includes(req.method))return fail(res,405,'Method not allowed.');

@@ -6,7 +6,7 @@
 - **Full-stack host:** Vercel, connected to this repository and the `main` branch.
 - **Build:** `npm install` then `npm run build`.
 - **Output directory:** `dist`.
-- **Server functions:** every file under `api/` is a Vercel Node.js function. Keep the frontend and API on the same Vercel origin so existing `/api/...` requests remain same-origin.
+- **Server functions:** Vercel creates a function for each API entrypoint. Voice Agent routes are consolidated through `api/voice-agent.js`; `vercel.json` rewrites the existing `/api/voice-agent/*` URLs to this shared handler. Keep the frontend and API on the same Vercel origin so existing `/api/...` requests remain same-origin.
 - **Static showcase:** `archivegauri.in/continuum/` is a static guest preview only. GitHub Pages cannot execute Node API routes. Do not copy the `api/` folder into the archive and expect it to run.
 
 ## Vercel project settings

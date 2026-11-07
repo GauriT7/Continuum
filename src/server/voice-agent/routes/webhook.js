@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createVoiceConfig, safeEqual, hmac, WEBHOOK_STATUSES, deriveOutcome } from '../../../src/server/voice-agent/runtime.js';
+import { createVoiceConfig, safeEqual, hmac, WEBHOOK_STATUSES, deriveOutcome } from '../runtime.js';
 const fail=(res,status,error)=>res.status(status).json({ok:false,error});
 const adminDb=()=>createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 export default async function handler(req,res){

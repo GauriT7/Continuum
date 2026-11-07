@@ -1,6 +1,6 @@
-import { requireVoiceStaff,fail,bodyOf,getPatientForStaff,latestConsent,publicCall } from '../_lib/voice-agent.js';
-import { createVoiceConfig,normalizePhone,validateMessage,calculateAge,evaluateCallingWindow,sha256,LANGUAGES,buildInstantOutboundRequest } from '../../src/server/voice-agent/runtime.js';
-import { createSarvamInstantOutbound } from '../../src/server/voice-agent/runtime.js';
+import { requireVoiceStaff,fail,bodyOf,getPatientForStaff,latestConsent,publicCall } from '../../../../api/_lib/voice-agent.js';
+import { createVoiceConfig,normalizePhone,validateMessage,calculateAge,evaluateCallingWindow,sha256,LANGUAGES,buildInstantOutboundRequest } from '../runtime.js';
+import { createSarvamInstantOutbound } from '../runtime.js';
 export const config={maxDuration:30};
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
