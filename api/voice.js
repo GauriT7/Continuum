@@ -4,6 +4,14 @@ const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
 const allowedLanguages=new Set(['en-IN','hi-IN','mr-IN'])
 const allowedPurposes=new Set(['appointment_confirmation','documents_pending','reschedule_request','postpartum_followup','callback_request'])
+const ageInYears=dobValue=>{
+  const match=/^(\\d{4})-(\\d{2})-(\\d{2})/.exec(String(dobValue||''))
+  if(!match)return null
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]))
+  const year=Number(parts.year),month=Number(parts.month),day=Number(parts.day)
+  const by=Number(match[1]),bm=Number(match[2]),bd=Number(match[3])
+  return year-by-((month<bm||(month===bm&&day<bd))?1:0)
+}
 
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store')
@@ -60,10 +68,13 @@ export default async function handler(req,res){
       if(pe||!clinicIds.includes(patient?.clinic_id))return fail(res,403,'Patient is not in your clinic.')
       const {data:pref,error:fe}=await supabase.from('voice_contact_preferences').select('consent_status,language_code,contact_is_parent_guardian').eq('patient_id',b.patient_id).single()
       if(fe||!pref||pref.consent_status!=='granted')return fail(res,403,'Valid patient consent is required before scheduling a call.')
-      const dob=patient?.date_of_birth?new Date(patient.date_of_birth):null
-      if(!dob||Number.isNaN(dob.getTime()))return fail(res,409,'The clinic record needs a verified date of birth before the agent can establish adult or minor status.')
-      const today=new Date(),age=today.getFullYear()-dob.getFullYear()-(today.getMonth()<dob.getMonth()||(today.getMonth()===dob.getMonth()&&today.getDate()<dob.getDate())?1:0)
+      const age=ageInYears(patient?.date_of_birth)
+      if(age===null)return fail(res,409,'The clinic record needs a verified date of birth before the agent can establish adult or minor status.')
       if(age<18&&pref.contact_is_parent_guardian!==true)return fail(res,403,'For a minor, confirm that the calling number belongs to the parent or guardian before scheduling.')
+      const since=new Date(Date.now()-7*24*60*60*1000).toISOString()
+      const {data:recentCalls,error:recentError}=await supabase.from('voice_calls').select('id,status').eq('clinic_id',patient.clinic_id).eq('patient_id',patient.id).gte('created_at',since).limit(10)
+      if(recentError)return fail(res,400,recentError.message)
+      if((recentCalls||[]).some(call=>!['cancelled','blocked'].includes(call.status)))return fail(res,409,'A call attempt or scheduled call already exists for this patient in the last seven days. Use the existing call record; do not create another campaign entry.')
       const {data,error}=await supabase.from('voice_calls').insert({
         clinic_id:patient.clinic_id,patient_id:patient.id,purpose:b.purpose,scheduled_at:scheduled.toISOString(),
         language_code:pref.language_code,context:{
