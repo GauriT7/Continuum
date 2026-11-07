@@ -13,6 +13,8 @@ import {
   Baby, CalendarCheck, FileCheck2, AlertCircle, Send, PanelLeftClose
 } from 'lucide-react'
 import './styles.css'
+import './design-system.css'
+import PatientSections from './PatientSections'
 
 const initialTasks = [
   {id:1,title:'Upload the latest blood test report',detail:'For your clinic file',date:'Today',tag:'Documents',done:false},
@@ -45,7 +47,14 @@ function App({ session }){
  const [mobileNav,setMobileNav]=useState(false)
  const [newTask,setNewTask]=useState('')
  const [language,setLanguage]=useState('English')
+ const [patientSection,setPatientSection]=useState('overview')
+ const [showNotifications,setShowNotifications]=useState(false)
+ const [showProfile,setShowProfile]=useState(false)
+ const [showCompose,setShowCompose]=useState(false)
+ const [messageDraft,setMessageDraft]=useState('')
+ const [messageDrafts,setMessageDrafts]=useState([])
  const completed=tasks.filter(t=>t.done).length
+ const todayLabel=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})
  const notify=(s)=>{setToast(s);setTimeout(()=>setToast(''),2300)}
  const toggle=(id)=>setTasks(ts=>ts.map(t=>t.id===id?{...t,done:!t.done}:t))
  const filteredPatients=useMemo(()=>patients.filter(p=>(filter==='All'||p.stage===filter)&&(`${p.name} ${p.id} ${p.owner}`.toLowerCase().includes(query.toLowerCase()))),[filter,query])
@@ -55,27 +64,27 @@ function App({ session }){
    <div className="brand"><div className="brand-mark"><span/><span/><span/></div><div><b>continuum</b><small>CARE, CONNECTED.</small></div><button className="icon-btn close-nav" onClick={()=>setMobileNav(false)}><X/></button></div>
    <div className="workspace-label">WORKSPACE</div>
    <div className="workspace-switch">
-    <button className={workspace==='patient'?'selected':''} onClick={()=>{setWorkspace('patient');setMobileNav(false)}}><Heart size={16}/>My Journey</button>
+    <button className={workspace==='patient'?'selected':''} onClick={()=>{setWorkspace('patient');setPatientSection('overview');setMobileNav(false)}}><Heart size={16}/>My Journey</button>
     <button className={workspace==='care'?'selected':''} onClick={()=>{setWorkspace('care');setActive('overview');setMobileNav(false)}}><Stethoscope size={16}/>Care Desk</button>
     <button className={workspace==='field'?'selected':''} onClick={()=>{setWorkspace('field');setActive('overview');setMobileNav(false)}}><Users size={16}/>Field Desk</button>
    </div>
    {workspace!=='patient'&&<><div className="workspace-label nav-label">WORKSPACE MENU</div><nav className="side-nav">{navItems.map(n=><button key={n.id} className={active===n.id?'active':''} onClick={()=>{setActive(n.id);setMobileNav(false)}}><n.icon size={17}/><span>{n.label}</span>{n.badge&&<em>{n.badge}</em>}</button>)}</nav></>}
    {workspace==='patient'&&<div className="journey-nav">
     <div className="workspace-label">YOUR SPACE</div>
-    {['My overview','My checklist','My documents','Appointments','Messages'].map((x,i)=><button key={x} className={i===0?'active':''} onClick={()=>notify(`${x} selected`)}>{[Home,ListChecks,FileText,CalendarDays,MessageCircle].map((I,j)=>i===j?<I key={j} size={17}/>:null)}{x}</button>)}
+    {[{id:'overview',label:'My overview',Icon:Home},{id:'checklist',label:'My checklist',Icon:ListChecks},{id:'documents',label:'My documents',Icon:FileText},{id:'appointments',label:'Appointments',Icon:CalendarDays},{id:'messages',label:'Messages',Icon:MessageCircle}].map(item=><button key={item.id} className={patientSection===item.id?'active':''} onClick={()=>{setPatientSection(item.id);setMobileNav(false)}}><item.Icon size={17}/>{item.label}</button>)}
    </div>}
    <div className="sidebar-bottom">
     <div className="help-card"><div className="help-icon"><CircleHelp size={17}/></div><b>Need a hand?</b><p>Your care coordinator is just a message away.</p><button onClick={()=>notify('Care team message panel opened')}>Contact care team <ArrowRight size={13}/></button></div>
-    <button className="profile-row"><div className="avatar avatar-user">AM</div><div><b>{workspace==='patient'?'Ananya Mehta':workspace==='care'?'Dr. Nisha Shah':'R. Patil'}</b><small>{workspace==='patient'?'Patient account':workspace==='care'?'Clinic administrator':'Field coordinator'}</small></div><MoreHorizontal size={18}/></button>
+    <button className="profile-row" type="button" onClick={()=>setShowProfile(v=>!v)} aria-expanded={showProfile}><div className="avatar avatar-user">{workspace==='patient'?'AM':workspace==='care'?'NS':'RP'}</div><div><b>{workspace==='patient'?'Ananya Mehta':workspace==='care'?'Dr. Nisha Shah':'R. Patil'}</b><small>{workspace==='patient'?'Patient account':workspace==='care'?'Doctor workspace':'Frontline coordinator'}</small></div><MoreHorizontal size={18}/></button>{showProfile&&<div className="profile-popover"><b>{session?.user?.email||'Demo account'}</b><small>{workspace==='patient'?'Patient portal':workspace==='care'?'Doctor / care team':'Frontline / administration'}</small><button type="button" onClick={()=>setShowProfile(false)}>Close profile panel</button></div>}
    </div>
   </aside>
   <main className="main-area">
    <header className="topbar">
     <button className="icon-btn mobile-menu" onClick={()=>setMobileNav(true)}><Menu/></button>
     <div className="crumb"><span>Continuum</span><ChevronRight size={14}/><b>{workspace==='patient'?'My Journey':workspace==='care'?'Care Desk':'Field Desk'}</b></div>
-    <div className="top-actions"><div className="sync-pill"><span/> All changes saved</div><button className="icon-btn" onClick={()=>notify('You’re all caught up')}><Bell size={18}/><i className="notif-dot"/></button><button className="language-btn" onClick={()=>setLanguage(language==='English'?'हिन्दी':'English')}><Languages size={16}/>{language}<ChevronDown size={13}/></button></div>
+    <div className="top-actions"><div className="sync-pill"><span/> All changes saved</div><button className="icon-btn" aria-label="Notifications" aria-expanded={showNotifications} onClick={()=>setShowNotifications(v=>!v)}><Bell size={18}/><i className="notif-dot"/></button><span className="language-indicator"><Languages size={15}/>{language}</span></div>
    </header>
-   {workspace==='patient'?<PatientHome tasks={tasks} toggle={toggle} completed={completed} notify={notify} setShowAdd={setShowAdd}/>:workspace==='care'?<CareHome active={active} session={session} setActive={setActive} patients={filteredPatients} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} selected={selected} setSelected={setSelected} notify={notify} setShowAdd={setShowAdd}/>:<FieldHome notify={notify}/>}
+   {workspace==='patient'?(patientSection==='overview'?<PatientHome tasks={tasks} toggle={toggle} completed={completed} notify={notify} setShowAdd={setShowAdd} setPatientSection={setPatientSection}/>:<PatientSections section={patientSection} tasks={tasks} toggle={toggle} setShowAdd={setShowAdd} notify={notify} setSection={setPatientSection}/>):workspace==='care'?<CareHome active={active} session={session} setActive={setActive} patients={filteredPatients} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} selected={selected} setSelected={setSelected} notify={notify} setShowAdd={setShowAdd} todayLabel={todayLabel} showCompose={()=>setShowCompose(true)} messageDrafts={messageDrafts}/>:<FieldHome notify={notify} setActive={setActive}/>}
   </main>
   <AnimatePresence>{showAdd&&<motion.div className="modal-backdrop" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={()=>setShowAdd(false)}><motion.div className="modal" initial={{y:18,scale:.98}} animate={{y:0,scale:1}} exit={{y:18,scale:.98}} onClick={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">QUICK ACTION</span><h2>Add a task</h2></div><button className="icon-btn" onClick={()=>setShowAdd(false)}><X/></button></div><p className="muted">Create a follow-up item for this demo workspace.</p><input value={newTask} onChange={e=>setNewTask(e.target.value)} placeholder="e.g. Collect ultrasound report"/><div className="modal-actions"><button className="btn-light" onClick={()=>setShowAdd(false)}>Cancel</button><button className="btn-primary" onClick={()=>{if(newTask.trim()){setTasks(ts=>[{id:Date.now(),title:newTask,detail:'Added just now',date:'Today',tag:'Follow-up',done:false},...ts]);setNewTask('');setShowAdd(false);notify('Task added to your list')}}}>Add task <ArrowRight size={15}/></button></div></motion.div></motion.div>}</AnimatePresence>
  </div>
