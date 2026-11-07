@@ -13,7 +13,7 @@ const tone=s=>s==='completed'?'good':['scheduled','dispatching','queued','retryi
 export default function VoiceOutreach({session}){
  const [data,setData]=useState({patients:[],preferences:[],calls:[]})
  const [form,setForm]=useState({patient_id:'',phone_e164:'',language_code:'mr-IN',consent_status:'not_recorded',consent_confirmed:false,contact_is_parent_guardian:false,safe_start_time:'09:00',safe_end_time:'18:00'})
- const [schedule,setSchedule]=useState({purpose:'appointment_confirmation',scheduled_at:'',appointment_datetime:'',callback_instruction:'',clinic_callback_sla:''})
+ const [schedule,setSchedule]=useState({purpose:'appointment_confirmation',scheduled_at:'',appointment_datetime:'',callback_instruction:'',clinic_callback_sla:'within one working day for administrative callbacks; the same working day for clinical callbacks'})
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('')
  const refresh=useCallback(async()=>{try{setData(await api(session))}catch(e){setError(e.message)}},[session?.access_token])
  useEffect(()=>{refresh()},[refresh])
@@ -65,7 +65,7 @@ export default function VoiceOutreach({session}){
     <label>Call date & time<input required type="datetime-local" value={schedule.scheduled_at} onChange={e=>setSchedule({...schedule,scheduled_at:e.target.value})}/></label>
     <label>Appointment date/time<input type="datetime-local" required={['appointment_confirmation','reschedule_request','postpartum_followup'].includes(schedule.purpose)} value={schedule.appointment_datetime} onChange={e=>setSchedule({...schedule,appointment_datetime:e.target.value})}/></label>
     {schedule.purpose==='documents_pending'&&<label>Clinic-approved document instructions<input required maxLength={200} value={schedule.callback_instruction} onChange={e=>setSchedule({...schedule,callback_instruction:e.target.value})} placeholder="Only categories confirmed by clinic staff"/></label>}
-    <label>Clinic-approved callback SLA<input required maxLength={120} value={schedule.clinic_callback_sla} onChange={e=>setSchedule({...schedule,clinic_callback_sla:e.target.value})} placeholder="e.g. within one working day"/></label>
+    <label>Clinic-approved callback SLA<input required maxLength={120} value={schedule.clinic_callback_sla} onChange={e=>setSchedule({...schedule,clinic_callback_sla:e.target.value})} placeholder="e.g. admin: within one working day; clinical: same working day"/></label>
     <button className="vo-primary" disabled={busy||!form.patient_id||!schedule.scheduled_at}><PhoneCall size={15}/> Schedule call</button>
     <p className="vo-help">The API checks saved consent. Vercel dispatches due calls to the active Sarvam campaign during its permitted calling window.</p>
    </form>
