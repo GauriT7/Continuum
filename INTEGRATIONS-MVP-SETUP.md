@@ -13,11 +13,12 @@ This change adds a signed-in-user web-push path, an Integrations tab, document-s
 
 ## Deploy steps
 1. If the voice tables have not already been created, review and apply `supabase-voice-migration.sql` first. Then review and apply `supabase-integrations-migration.sql` in the Supabase SQL Editor. Confirm the existing table IDs, check constraints and RLS policies against your Supabase schema before execution.
-2. Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` to Vercel. Generate a pair locally with `npx web-push generate-vapid-keys`.
+2. Copy `.env.example` as a checklist and add the real values in Vercel Project Settings. Generate VAPID keys locally with `npx web-push generate-vapid-keys`; never commit the generated private key.
 3. Set `CONTINUUM_DEMO_MODE=true` only in the demo deployment.
-4. Configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `VOICE_WEBHOOK_SECRET`, `SARVAM_VOICE_API_KEY`, `SARVAM_ORG_ID`, `SARVAM_WORKSPACE_ID` and `SARVAM_CAMPAIGN_ID` only after the matching resources exist. Keep `VOICE_DISPATCH_ENABLED=false` until the prompt, campaign, Exotel connection, webhook authentication, calling window, holiday calendar, attempt rules and all 22 supplied test cases are verified.
-5. Populate `voice_call_block_dates` for each clinic's public/national holidays. The migration deliberately does not guess or auto-import a holiday calendar.
-6. Run `npm install`, `npm run build`, apply the migrations and deploy to a preview environment first.
+4. Configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `VOICE_WEBHOOK_SECRET`, `SARVAM_API_KEY`, `SARVAM_VOICE_API_KEY`, `SARVAM_ORG_ID`, `SARVAM_WORKSPACE_ID` and `SARVAM_CAMPAIGN_ID` only after the matching resources exist. Keep `VOICE_DISPATCH_ENABLED=false` until the prompt, campaign, Exotel connection, webhook authentication, calling window, holiday calendar, attempt rules and all 22 supplied test cases are verified.
+5. Vercel Cron is intentionally not configured in `vercel.json`. For minute-level dispatch, enable Supabase `pg_cron`, `pg_net` and Vault, then follow `supabase-cron-setup.sql`. Use the same long random `CRON_SECRET` in Vercel and Supabase Vault.
+6. Populate `voice_call_block_dates` for each clinic's public/national holidays. The migration deliberately does not guess or auto-import a holiday calendar.
+7. Run `npm install`, `npm run build`, apply the migrations and deploy to a preview environment first.
 
 ## Device notifications
 Push is currently scoped to the signed-in staff account. It does not yet send patient-specific reminders. Patient delivery needs a verified patient portal identity, independent push consent and role-aware task/reminder fan-out. Use generic payloads only; never put diagnoses, report details, pregnancy stage or other sensitive health details in notification text.
