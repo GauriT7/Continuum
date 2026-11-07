@@ -37,7 +37,22 @@ export default async function handler(req,res){
       ])
       const bad=[patients,prefs,calls].find(x=>x.error)
       if(bad)return fail(res,400,bad.error.message)
-      return res.status(200).json({ok:true,patients:patients.data,preferences:prefs.data,calls:calls.data})
+      const dispatchRequired = [
+        'CRON_SECRET', 'VOICE_WEBHOOK_SECRET', 'SARVAM_VOICE_API_KEY',
+        'SARVAM_ORG_ID', 'SARVAM_WORKSPACE_ID', 'SARVAM_CAMPAIGN_ID'
+      ]
+      const missingDispatchSettings = dispatchRequired.filter(name => !process.env[name])
+      const dispatchEnabled = process.env.VOICE_DISPATCH_ENABLED === 'true'
+      const dispatchConfigured = missingDispatchSettings.length === 0
+      return res.status(200).json({
+        ok:true,patients:patients.data,preferences:prefs.data,calls:calls.data,
+        dispatch: {
+          enabled: dispatchEnabled,
+          configured: dispatchConfigured,
+          ready: dispatchEnabled && dispatchConfigured,
+          missing_settings: missingDispatchSettings
+        }
+      })
     }
     const b=bodyOf(req)
     if(req.method==='POST'&&b.action==='preference'){
