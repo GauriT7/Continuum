@@ -13,13 +13,13 @@ create table if not exists public.voice_contact_preferences(
  timezone text not null default 'Asia/Kolkata',
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now(),
- constraint voice_phone_e164 check(phone_e164 ~ E'^\+[1-9][0-9]{7,14}
+ constraint voice_phone_e164 check(phone_e164 ~ E'^\\+[1-9][0-9]{7,14}$')
 );
 
 -- Recreate the phone constraint idempotently when this migration is re-applied.
 alter table public.voice_contact_preferences drop constraint if exists voice_phone_e164;
 alter table public.voice_contact_preferences add constraint voice_phone_e164
-  check(phone_e164 ~ E'^\\+[1-9][0-9]{7,14}
+  check(phone_e164 ~ E'^\\+[1-9][0-9]{7,14}$');
  id uuid primary key default gen_random_uuid(),
  clinic_id uuid not null references public.clinics(id) on delete cascade,
  patient_id uuid not null references public.patients(id) on delete cascade,
