@@ -55,6 +55,7 @@ export default function OperationsCentre({ session }) {
   const [docFile,setDocFile] = useState(null)
   const [docType,setDocType] = useState('Other')
   const [docSource,setDocSource] = useState('manual_upload')
+  const [docConsentRef,setDocConsentRef] = useState('')
   const [docJob,setDocJob] = useState(null)
   const [docReview,setDocReview] = useState(null)
   const [aiPrompt,setAiPrompt] = useState('')
@@ -112,6 +113,7 @@ export default function OperationsCentre({ session }) {
   async function uploadDocument(e) {
     e.preventDefault()
     if (!docFile || !docPatient) return setError('Choose a patient and a document.')
+    if (docSource!=='manual_upload' && !docConsentRef.trim()) return setError('Add the clinic consent reference for this patient-authorised export.')
     if (docFile.size > 15*1024*1024) return setError('For this prototype, documents must be under 15 MB.')
     setBusy(true); setError(''); setNotice('')
     try {
@@ -120,8 +122,8 @@ export default function OperationsCentre({ session }) {
       const path = `${clinicId}/${docPatient}/${Date.now()}-${safeName}`
       const {error:uploadError} = await supabase.storage.from('continuum-documents').upload(path,docFile,{upsert:false,contentType:docFile.type})
       if (uploadError) throw uploadError
-      await callApi(session,'POST',{action:'document',patient_id:docPatient,file_name:docFile.name,storage_path:path,mime_type:docFile.type,document_type:docType,source_system:docSource})
-      setDocFile(null); setNotice('Document uploaded and added to the review inbox.'); await refresh()
+      await callApi(session,'POST',{action:'document',patient_id:docPatient,file_name:docFile.name,storage_path:path,mime_type:docFile.type,document_type:docType,source_system:docSource,external_consent_reference:docSource==='manual_upload'?null:docConsentRef.trim()})
+      setDocFile(null); setDocConsentRef(''); setDocSource('manual_upload'); setNotice('Document uploaded and added to the review inbox.'); await refresh()
     } catch(e) { setError(e.message) }
     finally { setBusy(false) }
   }
@@ -341,6 +343,7 @@ export default function OperationsCentre({ session }) {
           {field('Link to patient',<select required value={docPatient} onChange={e=>setDocPatient(e.target.value)}><option value="">Choose patient</option>{patients.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select>)}
           {field('Document category',<select value={docType} onChange={e=>setDocType(e.target.value)}><option>Other</option><option>Lab report</option><option>Referral letter</option><option>Discharge summary</option><option>Identity document</option><option>Appointment document</option><option>ABHA-linked health record</option><option>U-WIN immunisation certificate</option></select>)}
           {field('Document source',<select value={docSource} onChange={e=>setDocSource(e.target.value)}><option value="manual_upload">Patient-provided upload</option><option value="abdm_export">ABHA-linked export (patient-authorised)</option><option value="uwin_export">U-WIN certificate export</option></select>)}
+          {docSource!=='manual_upload'&&field('Clinic consent reference (not an ABHA number)',<input required maxLength={120} value={docConsentRef} onChange={e=>setDocConsentRef(e.target.value)} placeholder="Internal consent reference"/>)}
           {field('Choose file (PDF, JPG, PNG)',<input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e=>setDocFile(e.target.files?.[0]||null)}/>)}
           {button('Upload document',<UploadCloud size={15}/>)}
           <p className="oc-help">Files are stored in a private Supabase bucket. AI output is a draft for staff review, never a clinical interpretation.</p>
