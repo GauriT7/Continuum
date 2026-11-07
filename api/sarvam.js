@@ -39,23 +39,51 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, translated_text: data.translated_text, source_language_code: data.source_language_code })
     }
 
-    if (action === 'tts') {
-      const text = String(body.text || '').slice(0, 2400)
-      if (!text) return replyError(res, 400, 'Enter approved text to speak.')
-      const response = await fetch(`${SARVAM}/text-to-speech`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'api-subscription-key': key },
-        body: JSON.stringify({
-          text, model: 'bulbul:v4-flash',
-          language_code: body.language_code || 'mr-IN',
-          speaker: body.speaker || 'ritu_mr_customer',
-          output_audio_codec: 'mp3'
-        })
-      })
-      const data = await response.json()
-      if (!response.ok) return replyError(res, response.status, data?.error?.message || data?.message || 'Speech generation failed.')
-      return res.status(200).json({ ok: true, audio_base64: data.audios?.[0], mime_type: 'audio/mpeg' })
-    }
+    
+if (action === 'tts') {
+  const text = String(body.text || '').slice(0, 2400)
+  if (!text) return replyError(res, 400, 'Enter approved text to speak.')
+
+  const language = body.language_code || 'mr-IN'
+
+  const defaultSpeakers = {
+    'hi-IN': 'ritu_hi_customer',
+    'mr-IN': 'ritu_mr_conversational',
+    'en-IN': 'manisha',
+    'ta-IN': 'arvind',
+    'te-IN': 'karun'
+  }
+
+  const speaker = body.speaker || defaultSpeakers[language] || 'ritu_hi_customer'
+
+  const response = await fetch(`${SARVAM}/text-to-speech`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-subscription-key': key
+    },
+    body: JSON.stringify({
+      text,
+      model: 'bulbul:v4-flash',
+      language_code: language,
+      speaker,
+      output_audio_codec: 'mp3'
+    })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    return replyError(res, response.status, data?.error?.message || data?.message || 'Speech generation failed.')
+  }
+
+  return res.status(200).json({
+    ok: true,
+    audio_base64: data.audios?.[0],
+    mime_type: 'audio/mpeg'
+  })
+}
+
 
     if (action === 'stt') {
       const base64 = String(body.audio_base64 || '')
