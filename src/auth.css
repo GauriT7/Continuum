@@ -37,3 +37,27 @@
   .continuum-auth-card { padding: 27px 22px; }
   .continuum-session-bar { justify-content: space-between; font-size: 10px; }
 }
+
+
+.continuum-auth-guest {
+  width: 100%; margin: 2px 0 0; border: 0; border-radius: 11px; padding: 15px 16px;
+  display: flex; justify-content: center; align-items: center; gap: 10px;
+  background: #315a43; color: #fff; font: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: transform .18s ease, background .18s ease;
+}
+.continuum-auth-guest:hover { background: #264a36; transform: translateY(-1px); }
+.continuum-auth-guest svg:last-child { margin-left: auto; }
+.continuum-auth-demo-note {
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px;
+  color: #728078; font-size: 10px; line-height: 1.5; text-align: center;
+}
+.continuum-auth-divider {
+  display: flex; align-items: center; gap: 12px; margin: 24px 0 4px;
+  color: #98a098; font-size: 9px; font-weight: 750; letter-spacing: .14em;
+}
+.continuum-auth-divider::before, .continuum-auth-divider::after {
+  content: ''; height: 1px; flex: 1; background: #e9e9e2;
+}
+.guest-session-bar { background: #e4eee6; color: #315a43; }
+.guest-session-bar > span { display: flex; align-items: center; gap: 5px; }
+.guest-session-bar > span b { letter-spacing: .08em; }
