@@ -24,5 +24,10 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Check API route syntax
+        run: |
+          for file in api/*.js api/_lib/*.js; do
+            node --check "$file"
+          done
       - name: Build production bundle
         run: npm run build
