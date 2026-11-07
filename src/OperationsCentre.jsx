@@ -10,6 +10,7 @@ import './operations.css'
 import VoiceOutreach from './VoiceOutreach'
 import InstantVoiceAgent from './InstantVoiceAgent'
 import IntegrationsCentre from './IntegrationsCentre'
+import DemoOperationsPreview from './DemoOperationsPreview'
 
 const tabs = [
   ['patients','People',Users], ['journeys','Journeys',HeartHandshake],
@@ -40,7 +41,7 @@ const callSarvam = async (session, body) => {
 }
 const fmt = value => value ? new Date(value).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}) : 'No date set'
 
-export default function OperationsCentre({ session, initialTab = 'patients' }) {
+export default function OperationsCentre({ session, initialTab = 'patients', demoMode = false }) {
   const [tab,setTab] = useState(initialTab)
   const [data,setData] = useState({clinics:[],patients:[],journeys:[],tasks:[],appointments:[],documents:[]})
   const [loading,setLoading] = useState(true)
@@ -70,11 +71,42 @@ export default function OperationsCentre({ session, initialTab = 'patients' }) {
   const [transcript,setTranscript] = useState('')
 
   const refresh = useCallback(async () => {
+    if (demoMode) {
+      setData({
+        clinics: [{ id: 'demo-clinic', name: 'Continuum Demo Clinic' }],
+        patients: [
+          { id: 'demo-p1', full_name: 'Ananya Mehta', phone: '+91 98••• 2140', created_at: '2026-11-07T09:00:00Z' },
+          { id: 'demo-p2', full_name: 'Priya Kulkarni', phone: '+91 98••• 7312', created_at: '2026-11-06T09:00:00Z' },
+          { id: 'demo-p3', full_name: 'Sana Khan', phone: '+91 99••• 1058', created_at: '2026-11-05T09:00:00Z' }
+        ],
+        journeys: [
+          { id: 'demo-j1', patient_id: 'demo-p1', journey_type: 'fertility', status: 'active', created_at: '2026-10-18T08:00:00Z' },
+          { id: 'demo-j2', patient_id: 'demo-p2', journey_type: 'antenatal', status: 'active', created_at: '2026-10-24T08:00:00Z' },
+          { id: 'demo-j3', patient_id: 'demo-p3', journey_type: 'fertility', status: 'active', created_at: '2026-10-28T08:00:00Z' }
+        ],
+        tasks: [
+          { id: 'demo-t1', patient_id: 'demo-p1', title: 'Review laboratory report', assigned_role: 'nurse', due_at: '2026-11-08T09:00:00Z', status: 'pending' },
+          { id: 'demo-t2', patient_id: 'demo-p2', title: 'Confirm next appointment', assigned_role: 'admin', due_at: '2026-11-08T10:00:00Z', status: 'pending' },
+          { id: 'demo-t3', patient_id: 'demo-p3', title: 'Partner document follow-up', assigned_role: 'coordinator', due_at: '2026-11-09T10:00:00Z', status: 'completed' }
+        ],
+        appointments: [
+          { id: 'demo-a1', patient_id: 'demo-p2', appointment_type: 'Antenatal follow-up', scheduled_at: '2026-11-13T05:00:00Z', status: 'scheduled' },
+          { id: 'demo-a2', patient_id: 'demo-p1', appointment_type: 'Results review', scheduled_at: '2026-11-16T05:30:00Z', status: 'scheduled' }
+        ],
+        documents: [
+          { id: 'demo-d1', patient_id: 'demo-p1', file_name: 'sample-laboratory-report.pdf', document_type: 'Lab report', source_system: 'manual_upload', review_status: 'awaiting_review' },
+          { id: 'demo-d2', patient_id: 'demo-p2', file_name: 'sample-consultation-summary.pdf', document_type: 'Consultation summary', source_system: 'manual_upload', review_status: 'reviewed' }
+        ]
+      })
+      setError('')
+      setLoading(false)
+      return
+    }
     setLoading(true); setError('')
     try { const next = await callApi(session); setData(next) }
     catch(e) { setError(e.message) }
     finally { setLoading(false) }
-  },[session?.access_token])
+  },[session?.access_token, demoMode])
   useEffect(()=>{ refresh() },[refresh])
 
   const patients = data.patients || []
@@ -300,6 +332,8 @@ export default function OperationsCentre({ session, initialTab = 'patients' }) {
     sources
   }
 }
+
+  if (demoMode) return <DemoOperationsPreview initialTab={initialTab} />
 
   const field = (label,child) => <label className="oc-field"><span>{label}</span>{child}</label>
   const button = (label,icon=null,disabled=false) => <button className="oc-primary" disabled={disabled||busy}>{icon}{label}</button>
