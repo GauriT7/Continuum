@@ -6,11 +6,19 @@ import {
   AlertCircle, Loader2, ArrowRight, X, UserRound, HeartHandshake
 } from 'lucide-react'
 import './operations.css'
+import VoiceOutreach from './VoiceOutreach'
+import {
+  Users, ListChecks, CalendarDays, FileText, Sparkles, Plus,
+  RefreshCw, Check, Circle, Mic, Languages, Volume2, UploadCloud,
+  Search, Clock3, AlertCircle, Loader2, ArrowRight, X, UserRound,
+  HeartHandshake, PhoneCall
+} from 'lucide-react'
 
 const tabs = [
   ['patients','People',Users], ['journeys','Journeys',HeartHandshake],
   ['tasks','Tasks',ListChecks], ['appointments','Appointments',CalendarDays],
   ['documents','Documents',FileText], ['ai','Sarvam AI',Sparkles]
+  ['voice', 'Voice & Outreach', PhoneCall]
 ]
 const callApi = async (session, method='GET', body=null) => {
   const response = await fetch('/api/continuum', {
@@ -481,6 +489,9 @@ export default function OperationsCentre({ session }) {
           {audioUrl&&<audio controls src={audioUrl} className="oc-audio"/>}
         </div>
       </div>}
+
+      {tab === 'voice' && <VoiceOutreach session={session} />}
+              
     </>}
   </section>
 }
