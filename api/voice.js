@@ -1,9 +1,15 @@
 import { getSupabaseForRequest } from './_lib/supabase.js'
+import { createClient } from '@supabase/supabase-js'
 
 const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
 const allowedLanguages=new Set(['en-IN','hi-IN','mr-IN'])
 const allowedPurposes=new Set(['appointment_confirmation','documents_pending','reschedule_request','postpartum_followup','callback_request'])
+const adminDb=()=>{
+  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY
+  if(!url||!key)throw new Error('Service role access is required to enforce call revocation.')
+  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}})
+}
 const ageInYears=dobValue=>{
   const match=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(dobValue||''))
   if(!match)return null
@@ -52,8 +58,12 @@ export default async function handler(req,res){
       },{onConflict:'patient_id'}).select().single()
       if(error)return fail(res,400,error.message)
       if(b.consent_status!=='granted'){
-        await supabase.from('voice_calls').update({status:'blocked',failure_reason:'Patient calling consent is not active.',updated_at:new Date().toISOString()})
-          .eq('patient_id',patient.id).eq('status','scheduled')
+        const admin=adminDb()
+        const {error:blockError}=await admin.from('voice_calls').update({
+          status:'blocked',failure_reason:'Patient calling consent is not active.',updated_at:new Date().toISOString()
+        }).eq('patient_id',patient.id).eq('clinic_id',patient.clinic_id)
+          .in('status',['scheduled','dispatching','queued','retrying'])
+        if(blockError)return fail(res,500,'Consent was revoked, but queued calls could not be blocked. Contact the campaign operator before making any further calls.')
       }
       return res.status(200).json({ok:true,preference:data})
     }
