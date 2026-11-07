@@ -5,7 +5,7 @@ const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.bod
 const allowedLanguages=new Set(['en-IN','hi-IN','mr-IN'])
 const allowedPurposes=new Set(['appointment_confirmation','documents_pending','reschedule_request','postpartum_followup','callback_request'])
 const ageInYears=dobValue=>{
-  const match=/^(\\d{4})-(\\d{2})-(\\d{2})/.exec(String(dobValue||''))
+  const match=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(dobValue||''))
   if(!match)return null
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]))
   const year=Number(parts.year),month=Number(parts.month),day=Number(parts.day)
