@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createVoiceConfig, normalizePhone, maskPhone, validateMessage,
   calculateAge, evaluateCallingWindow, buildInstantOutboundRequest,
-  deriveOutcome, hmac, safeEqual, publicCall,
+  deriveOutcome, hmac, safeEqual, publicCallView,
 } from '../src/server/voice-agent/runtime.js';
 
 const providerConfig = {
@@ -103,7 +103,7 @@ test('a non-connected call cannot be marked as delivered', () => {
 });
 
 test('public call view masks the saved number', () => {
-  const result=publicCall({id:'c',mode:'live',status:'initiating',recipient_name:'Patient',phone_e164:'+919876543210',language:'en-IN',message:'Reminder message',created_at:'2026-11-07T12:00:00Z'});
+  const result=publicCallView({id:'c',mode:'live',status:'initiating',recipient_name:'Patient',phone_e164:'+919876543210',language:'en-IN',message:'Reminder message',created_at:'2026-11-07T12:00:00Z'});
   assert.equal(result.phoneMasked,'+91 •••••• 10');
   assert.equal('phone' in result,false);
 });
