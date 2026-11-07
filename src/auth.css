@@ -1,0 +1,39 @@
+.continuum-auth-screen {
+  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background: #f5f4ef; color: #26352e; font-family: inherit;
+}
+.continuum-auth-card {
+  width: min(100%, 420px); padding: 38px; border: 1px solid #e5e3da;
+  border-radius: 22px; background: #fffefa; box-shadow: 0 18px 60px #26352e12;
+}
+.continuum-auth-mark {
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 15px;
+  background: #dce9df; color: #315a43; font-size: 25px; font-weight: 700; margin-bottom: 24px;
+}
+.continuum-auth-eyebrow { color: #68816f; font-size: 10px; letter-spacing: .16em; font-weight: 700; }
+.continuum-auth-card h1 { margin: 9px 0 7px; font-size: 30px; letter-spacing: -.04em; }
+.continuum-auth-copy { color: #778078; font-size: 14px; line-height: 1.6; margin: 0 0 26px; }
+.continuum-auth-label { display: block; margin: 16px 0 7px; color: #4b5b51; font-size: 12px; font-weight: 650; }
+.continuum-auth-input {
+  display: flex; align-items: center; gap: 10px; border: 1px solid #dedfd7;
+  background: #fff; border-radius: 11px; padding: 0 13px; color: #839087;
+}
+.continuum-auth-input input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 13px 0; background: transparent; color: #26352e; font: inherit; font-size: 14px; }
+.continuum-auth-submit {
+  width: 100%; margin-top: 22px; border: 0; border-radius: 11px; padding: 14px 16px;
+  display: flex; justify-content: center; align-items: center; gap: 10px;
+  background: #315a43; color: white; font: inherit; font-weight: 650; cursor: pointer;
+}
+.continuum-auth-submit:disabled { opacity: .6; cursor: wait; }
+.continuum-auth-error { margin-top: 14px; padding: 11px 12px; border-radius: 9px; background: #fff0ed; color: #a33f32; font-size: 12px; }
+.continuum-auth-safe { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; color: #829087; font-size: 11px; }
+.continuum-session-bar {
+  position: relative; z-index: 20; min-height: 34px; padding: 6px 18px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 14px;
+  background: #eef2ed; color: #526257; font: 11px/1.4 inherit;
+}
+.continuum-session-bar button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: #315a43; font: inherit; cursor: pointer; }
+@media (max-width: 520px) {
+  .continuum-auth-card { padding: 27px 22px; }
+  .continuum-session-bar { justify-content: space-between; font-size: 10px; }
+}
