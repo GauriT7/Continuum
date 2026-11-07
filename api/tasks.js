@@ -13,7 +13,17 @@ export default async function handler(req, res) {
 
     const { data: userResult, error: userError } = await supabase.auth.getUser(token)
     if (userError || !userResult?.user) {
-      return res.status(401).json({ ok: false, error: 'Invalid or expired session' })
+      // Safe diagnostics only: never return the bearer token, API key, or user metadata.
+      return res.status(401).json({
+        ok: false,
+        error: 'Supabase rejected the access token',
+        diagnostic: {
+          message: userError?.message || 'No user returned',
+          code: userError?.code || null,
+          status: userError?.status || null,
+          hint: 'Check that SUPABASE_URL and SUPABASE_ANON_KEY belong to the same Supabase project as the frontend VITE_ variables.'
+        }
+      })
     }
 
     if (req.method === 'GET') {
@@ -27,7 +37,7 @@ export default async function handler(req, res) {
       if (req.query?.status) query = query.eq('status', req.query.status)
 
       const { data, error } = await query
-      if (error) return res.status(400).json({ ok: false, error: error.message })
+      if (error) return res.status(400).json({ ok: false, error: error.message, code: error.code })
       return res.status(200).json({ ok: true, tasks: data })
     }
 
@@ -58,7 +68,7 @@ export default async function handler(req, res) {
         .select('id, clinic_id, patient_id, journey_id, title, description, assigned_role, status, due_at, created_at')
         .single()
 
-      if (error) return res.status(400).json({ ok: false, error: error.message })
+      if (error) return res.status(400).json({ ok: false, error: error.message, code: error.code })
       return res.status(201).json({ ok: true, task: data })
     }
 
@@ -77,7 +87,7 @@ export default async function handler(req, res) {
       .select('id, status, updated_at')
       .single()
 
-    if (error) return res.status(400).json({ ok: false, error: error.message })
+    if (error) return res.status(400).json({ ok: false, error: error.message, code: error.code })
     return res.status(200).json({ ok: true, task: data })
   } catch (error) {
     const status = error.status || 500
