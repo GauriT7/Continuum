@@ -9,13 +9,13 @@ function saveCalendarInvite(){
     'DTEND;TZID=Asia/Kolkata:20261113T110000','SUMMARY:Continuum clinic appointment',
     'DESCRIPTION:Demo appointment reminder. Please contact your clinic for changes.',
     'END:VEVENT','END:VCALENDAR'
-  ].join('\\r\\n')
+  ].join('\r\n')
   const url = URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}))
   const link = document.createElement('a')
   link.href = url
   link.download = 'continuum-appointment.ics'
   link.click()
-  URL.revokeObjectURL(url)
+  setTimeout(()=>URL.revokeObjectURL(url),1000)
 }
 
 export default function PatientSections({section,tasks,toggle,setShowAdd,notify,setSection,savedDrafts,setSavedDrafts}){
