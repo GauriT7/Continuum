@@ -51,6 +51,7 @@ export default function OperationsCentre({ session }) {
   const [docFile,setDocFile] = useState(null)
   const [docType,setDocType] = useState('Other')
   const [docJob,setDocJob] = useState(null)
+  const [docReview,setDocReview] = useState(null)
   const [aiPrompt,setAiPrompt] = useState('')
   const [aiReply,setAiReply] = useState('')
   const [translation,setTranslation] = useState('')
@@ -130,20 +131,103 @@ export default function OperationsCentre({ session }) {
     finally { setBusy(false) }
   }
   async function pollDocJob() {
-    if (!docJob?.job_id) return
-    setBusy(true); setError('')
-    try {
-      const status = await callSarvam(session,{action:'doc-status',job_id:docJob.job_id})
-      setDocJob(j=>({...j,status:status.result?.status || status.result?.job_status || 'updated',statusPayload:status.result}))
-      const state = status.result?.status || status.result?.job_status
-      if (['completed','partially_completed'].includes(state)) {
-        const results = await callSarvam(session,{action:'doc-results',job_id:docJob.job_id})
-        setDocJob(j=>({...j,results:results.result}))
-      }
-    } catch(e) { setError(e.message) }
-    finally { setBusy(false) }
-  }
+  if (!docJob?.job_id) return
 
+  setBusy(true)
+  setError('')
+  setNotice('')
+
+  try {
+    const status = await callSarvam(session, {
+      action: 'doc-status',
+      job_id: docJob.job_id
+    })
+
+    const state =
+      status.result?.status ||
+      status.result?.job_status ||
+      'updated'
+
+    setDocJob(j => ({
+      ...j,
+      status: state,
+      statusPayload: status.result
+    }))
+
+    if (['completed', 'partially_completed'].includes(state)) {
+      const response = await callSarvam(session, {
+        action: 'doc-results',
+        job_id: docJob.job_id
+      })
+
+      // Sarvam's response has the extracted fields under result,
+      // and confidence/page evidence under annotations.
+      const extraction = response.result || {}
+      const extracted = extraction.result || {}
+      const annotations = extraction.annotations || {}
+
+      setDocJob(j => ({
+        ...j,
+        status: state,
+        results: extraction
+      }))
+
+      setDocReview({
+        document: docJob.document,
+        job_id: docJob.job_id,
+        values: {
+          patient_name: extracted.patient_name || '',
+          document_date: extracted.document_date || '',
+          issuing_facility: extracted.issuing_facility || '',
+          document_type: extracted.document_type || ''
+        },
+        annotations,
+        original: extraction
+      })
+
+      setNotice('Extraction complete. Review and confirm the fields below.')
+    } else if (['failed', 'cancelled'].includes(state)) {
+      setError(`Document AI job ${state}.`)
+    } else {
+      setNotice(`Document AI job status: ${state}. Check again shortly.`)
+    }
+  } catch (e) {
+    setError(e.message)
+  } finally {
+    setBusy(false)
+  }
+}
+
+  async function approveDocumentExtraction() {
+  if (!docReview?.document?.id) return
+
+  setBusy(true)
+  setError('')
+  setNotice('')
+
+  try {
+    const response = await callApi(session, 'PATCH', {
+      action: 'document',
+      id: docReview.document.id,
+      confirm_extraction: true,
+      verified_metadata: docReview.values,
+      extraction_result: docReview.original.result || {},
+      extraction_annotations: docReview.annotations
+    })
+
+    setNotice('Verified metadata saved. Document marked as reviewed.')
+
+    setDocReview(null)
+    setDocJob(null)
+
+    await refresh()
+  } catch (e) {
+    setError(e.message)
+  } finally {
+    setBusy(false)
+  }
+}
+  
   async function translateText(e) {
     e.preventDefault(); setBusy(true); setError('')
     try { const r=await callSarvam(session,{action:'translate',input:translation,target_language_code:targetLanguage,source_language_code:'auto'}); setTranslated(r.translated_text||'') }
@@ -174,6 +258,22 @@ export default function OperationsCentre({ session }) {
     try {const r=await callSarvam(session,{action:'assistant',prompt:aiPrompt});setAiReply(r.reply||'')}
     catch(e){setError(e.message)} finally{setBusy(false)}
   }
+
+  const extractionEvidence = (key) => {
+  const annotation = docReview?.annotations?.[key]
+
+  const confidence = annotation?.confidence
+  const sources = annotation?.sources || []
+
+  return {
+    confidence:
+      typeof confidence === 'number'
+        ? `${Math.round(confidence * 100)}%`
+        : 'Not provided',
+    pages: [...new Set(sources.map(s => s.page_num).filter(Boolean))],
+    sources
+  }
+}
 
   const field = (label,child) => <label className="oc-field"><span>{label}</span>{child}</label>
   const button = (label,icon=null,disabled=false) => <button className="oc-primary" disabled={disabled||busy}>{icon}{label}</button>
@@ -241,7 +341,124 @@ export default function OperationsCentre({ session }) {
         </form>
         <div className="oc-card"><div className="oc-card-head"><h3>Received documents</h3><span>{data.documents.length}</span></div>
           {data.documents.map(d=><div className="oc-doc" key={d.id}><div className="oc-row-main"><b>{d.file_name}</b><small>{patientName(d.patient_id)} · {d.document_type||'Unclassified'} · {d.review_status}</small></div><div className="oc-doc-actions"><button className="oc-secondary" onClick={()=>runDocAI(d,'classify')} disabled={busy}>Classify</button><button className="oc-secondary" onClick={()=>runDocAI(d,'extract')} disabled={busy}>Extract fields</button><button className="oc-secondary" onClick={()=>patch('document',{id:d.id,review_status:'reviewed'})}>Mark reviewed</button></div></div>)}
-          {docJob&&<div className="oc-job"><b>Sarvam Document AI · {docJob.operation}</b><small>Job {docJob.job_id} · {docJob.status}</small><button className="oc-secondary" onClick={pollDocJob} disabled={busy}>Check status / results</button>{docJob.results&&<pre>{JSON.stringify(docJob.results,null,2).slice(0,3500)}</pre>}</div>}
+          {docJob && (
+  <div className="oc-job">
+    <div className="oc-card-head">
+      <h3>Document Intelligence</h3>
+      <span className="oc-pill">{docJob.status}</span>
+    </div>
+
+    <p className="oc-help">
+      Sarvam Document AI · {docJob.operation}
+    </p>
+
+    <small>Job ID: {docJob.job_id}</small>
+
+    {!docReview && (
+      <button
+        type="button"
+        className="oc-secondary"
+        onClick={pollDocJob}
+        disabled={busy}
+      >
+        <RefreshCw size={14}/>
+        Check status / retrieve results
+      </button>
+    )}
+
+    {docReview && (
+      <div className="oc-review">
+        <div className="oc-notice">
+          <Check size={15}/>
+          Extraction complete. Please verify every field.
+        </div>
+
+        <div className="oc-review-warning">
+          AI-extracted information is a draft. Check it against
+          the original document before confirming.
+        </div>
+
+        {[
+          ['patient_name', 'Patient name'],
+          ['document_date', 'Document date'],
+          ['issuing_facility', 'Issuing facility'],
+          ['document_type', 'Document type']
+        ].map(([key, label]) => {
+          const evidence = extractionEvidence(key)
+
+          return (
+            <div className="oc-review-field" key={key}>
+              <label className="oc-field">
+                <span>{label}</span>
+
+                <input
+                  value={docReview.values[key]}
+                  onChange={e =>
+                    setDocReview(current => ({
+                      ...current,
+                      values: {
+                        ...current.values,
+                        [key]: e.target.value
+                      }
+                    }))
+                  }
+                  placeholder={`Enter ${label.toLowerCase()}`}
+                />
+              </label>
+
+              <div className="oc-evidence">
+                <span>
+                  AI confidence: <b>{evidence.confidence}</b>
+                </span>
+
+                <span>
+                  Source page(s):{' '}
+                  <b>
+                    {evidence.pages.length
+                      ? evidence.pages.join(', ')
+                      : 'Not provided'}
+                  </b>
+                </span>
+              </div>
+            </div>
+          )
+        })}
+
+        <div className="oc-review-actions">
+          <button
+            type="button"
+            className="oc-primary"
+            onClick={approveDocumentExtraction}
+            disabled={
+              busy ||
+              !docReview.values.patient_name.trim() ||
+              !docReview.values.document_type.trim()
+            }
+          >
+            <Check size={15}/>
+            Confirm and save metadata
+          </button>
+
+          <button
+            type="button"
+            className="oc-secondary"
+            onClick={() => setDocReview(null)}
+            disabled={busy}
+          >
+            Cancel review
+          </button>
+        </div>
+
+        <details className="oc-technical">
+          <summary>Technical details · raw Sarvam response</summary>
+          <pre>
+            {JSON.stringify(docReview.original, null, 2)}
+          </pre>
+        </details>
+      </div>
+    )}
+  </div>
+)}
         </div>
       </div>}
       {tab==='ai'&&<div className="oc-ai-grid">
