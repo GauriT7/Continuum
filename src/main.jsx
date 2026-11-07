@@ -35,7 +35,7 @@ const navItems = [
  {id:'messages',label:'Communication',icon:MessageCircle},
  {id:'operations',label:'Operations Centre',icon:Workflow},
 ]
-function App({ session }){
+function App({ session, onSignOut }){
  const [workspace,setWorkspace]=useState('patient')
  const [active,setActive]=useState('overview')
  const [operationTab,setOperationTab]=useState('patients')
@@ -76,7 +76,7 @@ function App({ session }){
    </div>}
    <div className="sidebar-bottom">
     <div className="help-card"><div className="help-icon"><CircleHelp size={17}/></div><b>Need a hand?</b><p>Your care coordinator is just a message away.</p><button onClick={()=>{if(workspace==='patient')setPatientSection('messages');else setActive('messages')}}>Contact care team <ArrowRight size={13}/></button></div>
-    <button className="profile-row" type="button" onClick={()=>setShowProfile(v=>!v)} aria-expanded={showProfile}><div className="avatar avatar-user">{workspace==='patient'?'AM':workspace==='care'?'NS':'RP'}</div><div><b>{workspace==='patient'?'Ananya Mehta':workspace==='care'?'Dr. Nisha Shah':'R. Patil'}</b><small>{workspace==='patient'?'Patient account':workspace==='care'?'Doctor workspace':'Frontline coordinator'}</small></div><MoreHorizontal size={18}/></button>{showProfile&&<div className="profile-popover"><b>{session?.user?.email||'Demo account'}</b><small>{workspace==='patient'?'Patient portal':workspace==='care'?'Doctor / care team':'Frontline / administration'}</small><button type="button" onClick={()=>setShowProfile(false)}>Close profile panel</button></div>}
+    <button className="profile-row" type="button" onClick={()=>setShowProfile(v=>!v)} aria-expanded={showProfile}><div className="avatar avatar-user">{workspace==='patient'?'AM':workspace==='care'?'NS':'RP'}</div><div><b>{workspace==='patient'?'Ananya Mehta':workspace==='care'?'Dr. Nisha Shah':'R. Patil'}</b><small>{workspace==='patient'?'Patient account':workspace==='care'?'Doctor workspace':'Frontline coordinator'}</small></div><MoreHorizontal size={18}/></button>{showProfile&&<div className="profile-popover"><b>{session?.user?.email||'Demo account'}</b><small>{workspace==='patient'?'Patient portal':workspace==='care'?'Doctor / care team':'Frontline / administration'}</small><button type="button" onClick={()=>setShowProfile(false)}>Close profile panel</button><button type="button" className="profile-signout" onClick={onSignOut}>Sign out</button></div>}
    </div>
   </aside>
   <main className="main-area">
