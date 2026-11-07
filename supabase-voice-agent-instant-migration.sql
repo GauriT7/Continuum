@@ -50,6 +50,7 @@ create table if not exists public.voice_agent_calls(
 );
 create index if not exists voice_agent_calls_clinic_created_idx on public.voice_agent_calls(clinic_id,created_at desc);
 create index if not exists voice_agent_calls_patient_created_idx on public.voice_agent_calls(patient_id,created_at desc);
+create unique index if not exists voice_agent_one_active_live_call_idx on public.voice_agent_calls(patient_id) where mode='live' and status in('pending','initiating');
 
 create table if not exists public.voice_agent_webhook_events(
  attempt_id text not null,

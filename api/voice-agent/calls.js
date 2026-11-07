@@ -50,6 +50,7 @@ export default async function handler(req,res){
   const {data:created,error:createError}=await db.from('voice_agent_calls').insert(row).select().single();
   if(createError){
    if(createError.code==='23505'){const {data:duplicate}=await db.from('voice_agent_calls').select('*').eq('idempotency_key',idempotencyKey).maybeSingle();if(duplicate)return res.status(200).json({ok:true,duplicate:true,call:publicCall(duplicate)});}
+   if(createError.code==='23505')return fail(res,409,'A live call is already pending or in progress for this patient.','live_call_already_active');
    return fail(res,400,createError.message);
   }
   if(mode==='simulated'){
@@ -58,6 +59,14 @@ export default async function handler(req,res){
    return res.status(201).json({ok:true,call:publicCall(updated||{...created,result})});
   }
   try{
+   // Recheck consent and state after insert so a concurrent revoke can block a not-yet-dispatched call.
+   const currentConsent=await latestConsent(db,patient.id,phone.e164);
+   const {data:currentCall,error:stateError}=await db.from('voice_agent_calls').select('status').eq('id',created.id).maybeSingle();
+   if(stateError)throw stateError;
+   if(!currentCall||currentCall.status!=='pending'||!currentConsent||currentConsent.consent_status!=='granted'||currentConsent.opted_out||currentConsent.wrong_number){
+    await db.from('voice_agent_calls').update({status:'blocked',updated_at:new Date().toISOString()}).eq('id',created.id).eq('status','pending');
+    return fail(res,403,'Consent was revoked or the call was blocked before dispatch. No call was placed.','consent_changed_before_dispatch');
+   }
    const call={id:created.id,phone:created.phone_e164,recipientName:created.recipient_name,clinicName:created.clinic_name,message:created.message,language:created.language,appointmentDatetime:created.appointment_datetime,clinicContactNumber:created.clinic_contact_number};
    const attemptId=await createSarvamInstantOutbound(call,config);
    const {data:updated,error:updateError}=await db.from('voice_agent_calls').update({attempt_id:attemptId,status:'initiating',updated_at:new Date().toISOString()}).eq('id',created.id).select().single();
