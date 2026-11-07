@@ -197,11 +197,16 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST' && action === 'document') {
       if (!body.patient_id || !body.file_name || !body.storage_path) return fail(res, 400, 'Document metadata is incomplete.')
+      const sourceSystem = ['manual_upload','abdm_export','uwin_export'].includes(body.source_system) ? body.source_system : 'manual_upload'
+      const consentReference = String(body.external_consent_reference || '').trim().slice(0,120)
+      if (sourceSystem !== 'manual_upload' && !consentReference) return fail(res, 400, 'A clinic consent reference is required for patient-authorised imports.')
+      const { data: linkedPatient, error: patientError } = await supabase.from('patients').select('id,clinic_id').eq('id', body.patient_id).single()
+      if (patientError || !clinicIds.includes(linkedPatient?.clinic_id)) return fail(res, 403, 'Patient is not in your clinic.')
       const { data, error } = await supabase.from('documents').insert({
         clinic_id: clinicId, patient_id: body.patient_id,
         file_name: body.file_name, storage_path: body.storage_path,
         mime_type: body.mime_type || null,
-        document_type: body.document_type || null, source_system: ['manual_upload','abdm_export','uwin_export'].includes(body.source_system) ? body.source_system : 'manual_upload', review_status: 'pending'
+        document_type: body.document_type || null, source_system: sourceSystem, external_consent_reference: consentReference || null, review_status: 'pending'
       }).select().single()
       if (error) return fail(res, 400, error.message)
       return res.status(201).json({ ok: true, document: data })
