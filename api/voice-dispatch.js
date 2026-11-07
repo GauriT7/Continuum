@@ -3,7 +3,7 @@ const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const db=()=>createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}})
 const languageName=code=>({'en-IN':'English','hi-IN':'Hindi','mr-IN':'Marathi'})[code]||'English'
 const ageInYears=dobValue=>{
-  const match=/^(\\d{4})-(\\d{2})-(\\d{2})/.exec(String(dobValue||''))
+  const match=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(dobValue||''))
   if(!match)return null
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]))
   const year=Number(parts.year),month=Number(parts.month),day=Number(parts.day)
