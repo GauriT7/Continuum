@@ -19,7 +19,7 @@ const flagsAllowed=new Set([
 ])
 const enumValue=(v,allowed,fallback)=>allowed.has(String(v||''))?String(v):fallback
 
-function sanitiseOutputs(raw,callId,providerDuration){
+function sanitiseOutputs(raw,callId,providerDuration,providerInteractionId){
   const rawCommitments=raw.commitments&&typeof raw.commitments==='object'?raw.commitments:{}
   const attending=enumValue(rawCommitments.attending,new Set(['yes','no','unsure','not_discussed']),'not_discussed')
   const timeWindow=enumValue(rawCommitments.preferred_time_window,new Set(['morning','afternoon','evening','any','not_discussed']),'not_discussed')
@@ -38,7 +38,7 @@ function sanitiseOutputs(raw,callId,providerDuration){
     continuum_call_id:callId,
     call_outcome:outcome,
     callback_requested:truthy(raw.callback_requested)||outcome==='callback_requested',
-    needs_human_followup:truthy(raw.needs_human_followup)||clinicalOrDistress||reason==='complaint'||reason==='billing'||reason==='other'&&flags.includes('record_error'),
+    needs_human_followup:truthy(raw.needs_human_followup)||clinicalOrDistress||reason==='complaint'||flags.includes('complaint')||flags.includes('record_error'),
     opt_out_requested:truthy(raw.opt_out_requested)||outcome==='opt_out'||flags.includes('third_party_optout'),
     identity_verified:truthy(raw.identity_verified),
     language_used:enumValue(raw.language_used,new Set(['mr-IN','hi-IN','en-IN','other']),'other'),
@@ -55,7 +55,7 @@ function sanitiseOutputs(raw,callId,providerDuration){
     flags,
     turn_count:numeric(raw.turn_count,500),
     duration_seconds:numeric(raw.duration_seconds??providerDuration,240),
-    transcript_ref:shortText(raw.transcript_ref,500)||null
+    transcript_ref:shortText(raw.transcript_ref||providerInteractionId,500)||null
   }
 }
 
@@ -78,7 +78,7 @@ export default async function handler(req,res){
     if(existingAttempt)return res.status(200).json({ok:true,duplicate:true})
 
     const connectivity=String(b.connectivity_status||'').toLowerCase()
-    const outputs=sanitiseOutputs(b.output_agent_variables||b.final_agent_variables||{},callId,b.duration)
+    const outputs=sanitiseOutputs(b.output_agent_variables||b.final_agent_variables||{},callId,b.duration,b.interaction_id)
     const optedOut=outputs.opt_out_requested
     const callback=outputs.callback_requested||outputs.needs_human_followup||
       (['busy','no_answer'].includes(connectivity)&&Number(call.attempt_count||0)>=2)
@@ -132,7 +132,7 @@ export default async function handler(req,res){
       const clinical=outputs.callback_reason_category==='clinical'||
         flags.some(x=>['clinical_question','emergency_line_given','distress'].includes(x))
       const staffNote=clinical
-        ? 'Clinical question or safety concern flagged for clinic follow-up. Do not assess or respond through this workflow.'
+        ? 'Same-working-day clinical callback required. Do not assess or respond through this workflow.'
         : outputs.staff_note||'Clinic staff follow-up requested.'
       const details=[
         'Call outcome: '+outcome,
