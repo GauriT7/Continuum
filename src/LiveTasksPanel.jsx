@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Check, Circle, RefreshCw, AlertCircle, ClipboardList } from 'lucide-react'
 import './live-tasks.css'
 
-export default function LiveTasksPanel({ session }) {
+export default function LiveTasksPanel({ session, demoMode = false }) {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
