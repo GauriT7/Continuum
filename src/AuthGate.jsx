@@ -74,7 +74,7 @@ export default function AuthGate({ children }) {
         <span>Signed in as <b>{session.user.email}</b></span>
         <button onClick={signOut}><LogOut size={14}/> Sign out</button>
       </div>
-      {React.cloneElement(children, { session })}
+      {React.cloneElement(children, { session, onSignOut: signOut })}
     </>
   )
 }
