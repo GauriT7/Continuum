@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true })
     }
 
-    if (req.method === 'POST' && body.action === 'test') {
+    if (req.method === 'POST' && ['test', 'appointment-reminder'].includes(body.action)) {
       if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_SUBJECT) {
         return fail(res, 503, 'Push is not configured. Add VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT in Vercel.')
       }
@@ -54,11 +54,31 @@ export default async function handler(req, res) {
         .select('id,endpoint,subscription').eq('user_id', userId)
       if (error) return fail(res, 400, error.message)
       if (!rows?.length) return fail(res, 404, 'No devices are registered for this account.')
-      const payload = JSON.stringify({
-        title: 'Continuum',
-        body: 'Your notification connection is working.',
-        url: '/'
-      })
+      if (body.action === 'appointment-reminder') {
+        if (!body.appointment_id) return fail(res, 400, 'Choose an appointment first.')
+        const { data: memberships, error: membershipError } = await supabase
+          .from('clinic_members').select('clinic_id').eq('user_id', userId).limit(10)
+        if (membershipError) return fail(res, 400, membershipError.message)
+        const clinicIds = (memberships || []).map(row => row.clinic_id)
+        if (!clinicIds.length) return fail(res, 403, 'Your account is not linked to a clinic.')
+        const { data: appointment, error: appointmentError } = await supabase
+          .from('appointments').select('id').eq('id', body.appointment_id)
+          .in('clinic_id', clinicIds).maybeSingle()
+        if (appointmentError) return fail(res, 400, appointmentError.message)
+        if (!appointment) return fail(res, 404, 'Appointment not found in your clinic.')
+      }
+
+      const payload = JSON.stringify(body.action === 'appointment-reminder'
+        ? {
+            title: 'Continuum appointment reminder',
+            body: 'An appointment reminder is ready. Open Continuum to review your schedule.',
+            url: '/'
+          }
+        : {
+            title: 'Continuum',
+            body: 'Your notification connection is working.',
+            url: '/'
+          })
       const results = await Promise.allSettled(rows.map(row =>
         webpush.sendNotification(row.subscription, payload, { TTL: 60 })
       ))
@@ -72,7 +92,7 @@ export default async function handler(req, res) {
         await supabase.from('push_subscriptions').delete().in('id', expiredIds).eq('user_id', userId)
       }
       if (!delivered) return fail(res, 502, 'The push provider rejected all registered devices. Re-enable notifications on the device.')
-      return res.status(200).json({ ok: true, delivered, expired: expiredIds.length })
+      return res.status(200).json({ ok: true, delivered, expired: expiredIds.length, notification: body.action })
     }
 
     if (req.method === 'DELETE') {
