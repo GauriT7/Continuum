@@ -1,19 +1,23 @@
-import callsHandler from './calls.js'
-import configHandler from './config.js'
-import consentsHandler from './consents.js'
-import getCallHandler from './calls/[id].js'
-import contextHandler from './context/[id].js'
-import webhookHandler from './webhook/[secret].js'
+import callsHandler from '../src/server/voice-agent/routes/calls.js'
+import configHandler from '../src/server/voice-agent/routes/config.js'
+import consentsHandler from '../src/server/voice-agent/routes/consents.js'
+import getCallHandler from '../src/server/voice-agent/routes/call-by-id.js'
+import contextHandler from '../src/server/voice-agent/routes/context.js'
+import webhookHandler from '../src/server/voice-agent/routes/webhook.js'
+
+export const config = { maxDuration: 30 }
 
 const sendNotFound = (res) => res.status(404).json({ ok: false, error: 'Voice Agent route not found.' })
 
 function matchRoute(req) {
-  const pathname = new URL(req.url || '/', 'https://continuum.invalid').pathname
-  const parts = pathname.split('/').filter(Boolean).map(part => {
+  // vercel.json rewrites /api/voice-agent/* to this one function and
+  // forwards the captured wildcard in the "path" query parameter.
+  const rawPath = req.query?.path
+  if (typeof rawPath !== 'string' && !Array.isArray(rawPath)) return null
+  const routePath = Array.isArray(rawPath) ? rawPath.join('/') : rawPath
+  const route = routePath.split('/').filter(Boolean).map(part => {
     try { return decodeURIComponent(part) } catch { return part }
   })
-  if (parts.length < 2 || parts[0] !== 'api' || parts[1] !== 'voice-agent') return null
-  const route = parts.slice(2)
 
   if (route.length === 1 && route[0] === 'calls') return { handler: callsHandler }
   if (route.length === 1 && route[0] === 'config') return { handler: configHandler }
