@@ -30,3 +30,16 @@ The API endpoint only reports whether sandbox variables are present. It does not
 
 ## Voice safety boundary
 This app code does not create a Sarvam agent or Exotel campaign. Voice dispatch is disabled by default. The uploaded agent spec contains 22 acceptance tests and unresolved launch decisions; do not enable dispatch until those are implemented and signed off. In particular, do not place calls without recorded consent, a known patient age/guardian status, purpose-specific context, clinic callback SLA, approved call window and tested opt-out propagation.
+
+
+## Appointment push demo
+- In Operations Centre → Appointments, staff can use **Notify my devices** on an appointment row.
+- The notification is sent only to devices registered to the currently signed-in staff account. It uses generic lock-screen text and does not expose patient names, appointment dates or clinical information.
+- The endpoint verifies that the selected appointment belongs to one of the signed-in user's clinics before sending.
+- This is a staff-device demo. It is not patient delivery or a cross-user staff assignment system.
+
+## Voice call readiness
+- The Voice & Outreach panel now reports whether outbound dispatch is enabled and which server-side settings are missing. It never displays secret values.
+- Scheduling a call creates a consent-gated database record; it does not itself place a call.
+- A real call still requires a reviewed Sarvam Voice Agent, a working Exotel Exophone connection, the webhook URL/token, the Sarvam organisation/workspace/campaign identifiers, `CRON_SECRET`, `VOICE_WEBHOOK_SECRET`, the Supabase Cron worker and all call-spec safety gates.
+- Keep `VOICE_DISPATCH_ENABLED=false` until the clinic has approved the agent and all acceptance tests pass. Do not use real patient numbers for connectivity testing without explicit consent.

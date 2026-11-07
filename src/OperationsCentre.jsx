@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 import {
-  Users, ListChecks, CalendarDays, FileText, Sparkles, Plus, RefreshCw,
+  Users, ListChecks, CalendarDays, FileText, Sparkles, Plus, RefreshCw, BellRing,
   Check, Circle, Mic, Languages, Volume2, UploadCloud, Search, Clock3,
   AlertCircle, Loader2, ArrowRight, X, UserRound, HeartHandshake, PhoneCall,
   Smartphone
@@ -108,6 +108,24 @@ export default function OperationsCentre({ session }) {
   async function createAppointment(e) {
     e.preventDefault(); await mutate('appointment',{...appointmentForm,scheduled_at:new Date(appointmentForm.scheduled_at).toISOString()})
     setAppointmentForm({patient_id:'',scheduled_at:'',appointment_type:'Follow-up'})
+  }
+
+  async function notifyAppointment(appointmentId) {
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const response = await fetch('/api/push', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'appointment-reminder', appointment_id: appointmentId })
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Could not send the appointment reminder.')
+      setNotice(`Reminder sent to ${result.delivered} registered device(s) on your account.`)
+    } catch (e) {
+      setError(e.message || 'Could not send the appointment reminder.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function uploadDocument(e) {
@@ -335,7 +353,7 @@ export default function OperationsCentre({ session }) {
           {button('Save appointment',<Plus size={15}/>)}
         </form>
         <div className="oc-card"><div className="oc-card-head"><h3>Upcoming & recent appointments</h3><span>{data.appointments.length}</span></div>
-          {data.appointments.map(a=><div className="oc-row" key={a.id}><div className="oc-row-main"><b>{patientName(a.patient_id)}</b><small>{a.appointment_type||'Appointment'} · {fmt(a.scheduled_at)}</small></div><select className="oc-inline-select" value={a.status} onChange={e=>patch('appointment',{id:a.id,status:e.target.value})}><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="rescheduled">Rescheduled</option></select></div>)}
+          {data.appointments.map(a=><div className="oc-row" key={a.id}><div className="oc-row-main"><b>{patientName(a.patient_id)}</b><small>{a.appointment_type||'Appointment'} · {fmt(a.scheduled_at)}</small></div><select className="oc-inline-select" value={a.status} onChange={e=>patch('appointment',{id:a.id,status:e.target.value})}><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="rescheduled">Rescheduled</option></select><button type="button" className="oc-secondary" onClick={()=>notifyAppointment(a.id)} disabled={busy}><BellRing size={13}/> Notify my devices</button></div>)}
         </div>
       </div>}
       {tab==='documents'&&<div className="oc-grid">
