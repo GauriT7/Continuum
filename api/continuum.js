@@ -91,16 +91,83 @@ export default async function handler(req, res) {
       return res.status(201).json({ ok: true, task: data })
     }
 
-    if (req.method === 'PATCH' && action === 'task') {
-      const allowed = ['pending','in_progress','completed','cancelled']
-      if (!body.id || !allowed.includes(body.status)) return fail(res, 400, 'Invalid task update.')
-      const { data, error } = await supabase.from('tasks')
-        .update({ status: body.status, updated_at: new Date().toISOString() })
-        .eq('id', body.id).in('clinic_id', clinicIds)
-        .select().single()
-      if (error) return fail(res, 400, error.message)
-      return res.status(200).json({ ok: true, task: data })
+    if (req.method === 'PATCH' && action === 'document') {
+  const allowed = [
+    'pending',
+    'reviewed',
+    'matched',
+    'needs_clarification'
+  ]
+
+  if (!body.id) {
+    return fail(res, 400, 'Missing document ID.')
+  }
+
+  // Human approval of extracted metadata
+  if (body.confirm_extraction === true) {
+    const allowedFields = [
+      'patient_name',
+      'document_date',
+      'issuing_facility',
+      'document_type'
+    ]
+
+    const verified = {}
+
+    for (const key of allowedFields) {
+      verified[key] = String(body.verified_metadata?.[key] || '').trim()
     }
+
+    if (!verified.patient_name || !verified.document_type) {
+      return fail(res, 400, 'Confirm the patient name and document type.')
+    }
+
+    const { data, error } = await supabase
+      .from('documents')
+      .update({
+        document_type: verified.document_type,
+        review_status: 'reviewed',
+        extraction_result: body.extraction_result || {},
+        extraction_annotations: body.extraction_annotations || {},
+        verified_metadata: verified,
+        reviewed_by: auth.user.id,
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('id', body.id)
+      .in('clinic_id', clinicIds)
+      .select()
+      .single()
+
+    if (error) return fail(res, 400, error.message)
+
+    return res.status(200).json({
+      ok: true,
+      document: data,
+      message: 'Document metadata verified and saved.'
+    })
+  }
+
+  if (!allowed.includes(body.review_status)) {
+    return fail(res, 400, 'Invalid document review status.')
+  }
+
+  const { data, error } = await supabase
+    .from('documents')
+    .update({
+      review_status: body.review_status,
+      ...(body.document_type
+        ? { document_type: body.document_type }
+        : {})
+    })
+    .eq('id', body.id)
+    .in('clinic_id', clinicIds)
+    .select()
+    .single()
+
+  if (error) return fail(res, 400, error.message)
+
+  return res.status(200).json({ ok: true, document: data })
+}
 
     if (req.method === 'POST' && action === 'appointment') {
       if (!body.patient_id || !body.scheduled_at) return fail(res, 400, 'Choose a patient and appointment date/time.')
