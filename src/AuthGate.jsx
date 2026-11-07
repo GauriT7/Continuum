@@ -4,6 +4,7 @@ import { LockKeyhole, Mail, ArrowRight, LogOut, ShieldCheck, Eye } from 'lucide-
 import './auth.css'
 
 export default function AuthGate({ children }) {
+  const supabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
   const [session, setSession] = useState(null)
   const [guestMode, setGuestMode] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -13,6 +14,11 @@ export default function AuthGate({ children }) {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!supabaseConfigured) {
+      setError('Staff sign-in is not configured on this deployment yet. You can still explore the guest demo.')
+      setLoading(false)
+      return
+    }
     let alive = true
     supabase.auth.getSession().then(({ data, error }) => {
       if (!alive) return
@@ -38,6 +44,10 @@ export default function AuthGate({ children }) {
 
   async function signIn(event) {
     event.preventDefault()
+    if (!supabaseConfigured) {
+      setError('Staff sign-in is not configured on this deployment yet. Please use Explore as guest.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -88,7 +98,7 @@ export default function AuthGate({ children }) {
             <label className="continuum-auth-label">Password</label>
             <div className="continuum-auth-input"><LockKeyhole size={17}/><input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" required /></div>
             {error && <div className="continuum-auth-error" role="alert">{error}</div>}
-            <button className="continuum-auth-submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'} <ArrowRight size={16}/></button>
+            <button className="continuum-auth-submit" disabled={busy || !supabaseConfigured}>{busy ? 'Signing in…' : 'Sign in'} <ArrowRight size={16}/></button>
           </form>
           <div className="continuum-auth-safe"><ShieldCheck size={14}/> Secure staff sign-in powered by Supabase</div>
         </div>
