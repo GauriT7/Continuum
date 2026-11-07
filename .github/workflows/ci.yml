@@ -1,10 +1,10 @@
-name: Continuum build verification
+name: Continuum build and voice-agent verification
 
 on:
   push:
     branches:
       - main
-      - feature/continuum-integrations-mvp
+      - feature/voice-agent-sarvam-integration
   pull_request:
     branches:
       - main
@@ -24,10 +24,10 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Check API route syntax
+      - name: Run instant voice-agent unit tests
+        run: npm test
+      - name: Check API and server route syntax
         run: |
-          for file in api/*.js api/_lib/*.js; do
-            node --check "$file"
-          done
+          find api src/server -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Build production bundle
         run: npm run build

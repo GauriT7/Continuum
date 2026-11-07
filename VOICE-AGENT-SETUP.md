@@ -112,3 +112,8 @@ The server enforces 09:00–20:00 IST, Monday–Saturday, excluding configured h
 - Live outbound calling remains disabled by default.
 - The legacy campaign and instant-call systems have separate tables, dispatch controls and webhook paths.
 - The feature is not approved for production patient calling until the clinic completes its consent, safety, privacy and operational validation.
+
+
+## Privacy and operational retention
+
+This implementation stores the approved spoken text and a sanitized text transcript/outcome when Sarvam returns one. It does not store raw call audio. These records can still contain personal information. Before any real patient use, the clinic must decide and document its access controls, retention period, deletion process, incident handling and who may review transcripts. The prototype does not set a retention period on the clinic's behalf.
