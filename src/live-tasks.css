@@ -1,0 +1,19 @@
+.live-tasks-panel { margin-top: 18px; }
+.live-refresh { display: inline-flex; align-items: center; gap: 7px; }
+.live-refresh:disabled { opacity: .55; }
+.live-task-state { padding: 22px 4px; color: #778078; font-size: 13px; }
+.live-task-error { display: flex; align-items: flex-start; gap: 9px; padding: 12px; margin: 12px 0; border-radius: 10px; background: #fff0ed; color: #9b3d31; font-size: 12px; }
+.live-task-row { display: flex; align-items: center; gap: 12px; padding: 14px 2px; border-top: 1px solid #eeeee8; }
+.live-task-check { width: 28px; height: 28px; flex: 0 0 28px; display: grid; place-items: center; border: 0; background: transparent; color: #839087; cursor: pointer; }
+.live-task-check.checked { border-radius: 50%; background: #e3eee5; color: #315a43; }
+.live-task-check:disabled { opacity: .5; cursor: wait; }
+.live-task-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.live-task-copy b { color: #344239; font-size: 13px; font-weight: 650; }
+.live-task-copy b.is-complete { color: #8a948d; text-decoration: line-through; }
+.live-task-copy small { color: #8a938d; font-size: 11px; }
+.live-task-status { white-space: nowrap; padding: 5px 8px; border-radius: 20px; background: #f2f1ec; color: #6d776f; font-size: 10px; text-transform: capitalize; }
+.live-task-status.pending { background: #fff2dc; color: #93621b; }
+.live-task-status.completed { background: #e5f0e7; color: #3c704b; }
+.live-task-status.in_progress { background: #e8eef9; color: #49648f; }
+.live-task-foot { display: flex; align-items: center; gap: 7px; padding-top: 12px; border-top: 1px solid #eeeee8; color: #879189; font-size: 10px; }
+@media (max-width: 520px) { .live-task-row { align-items: flex-start; } .live-task-status { font-size: 9px; } }
