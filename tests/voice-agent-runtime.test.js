@@ -48,7 +48,7 @@ test('message validation blocks links and markdown and flags clinical words', ()
 
 test('age is calculated in India local date and invalid birth dates are refused', () => {
   assert.equal(calculateAge('2005-12-07',new Date('2026-12-06T17:59:00.000Z')),20);
-  assert.equal(calculateAge('2005-12-07',new Date('2026-12-06T18:00:00.000Z')),21);
+  assert.equal(calculateAge('2005-12-07',new Date('2026-12-06T18:30:00.000Z')),21);
   assert.equal(calculateAge('not-a-date'),null);
 });
 
