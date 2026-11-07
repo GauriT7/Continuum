@@ -1,1 +1,8 @@
-{}
+{
+  "rewrites": [
+    {
+      "source": "/api/voice-agent/:path*",
+      "destination": "/api/voice-agent?path=:path*"
+    }
+  ]
+}
