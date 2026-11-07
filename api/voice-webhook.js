@@ -27,7 +27,7 @@ export default async function handler(req,res){
     const callbackRequested=truthy(outputs.callback_requested)
     const needsHuman=truthy(outputs.needs_human_followup)
     const optedOut=truthy(outputs.opt_out_requested)
-    const callback=callbackRequested||needsHuman
+    const callback=callbackRequested||needsHuman||(['busy','no_answer'].includes(status)&&Number(call.attempt_count||0)>=2)
     const outcome=String(outputs.call_outcome||outputs.call_disposition||status).slice(0,100)
     const {error:attemptError}=await supabase.from('voice_call_attempts').insert({
       voice_call_id:callId,clinic_id:call.clinic_id,sarvam_attempt_id:b.attempt_id,
