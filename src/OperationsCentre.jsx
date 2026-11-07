@@ -3,22 +3,18 @@ import { supabase } from './supabase'
 import {
   Users, ListChecks, CalendarDays, FileText, Sparkles, Plus, RefreshCw,
   Check, Circle, Mic, Languages, Volume2, UploadCloud, Search, Clock3,
-  AlertCircle, Loader2, ArrowRight, X, UserRound, HeartHandshake
+  AlertCircle, Loader2, ArrowRight, X, UserRound, HeartHandshake, PhoneCall,
+  Smartphone
 } from 'lucide-react'
 import './operations.css'
 import VoiceOutreach from './VoiceOutreach'
-import {
-  Users, ListChecks, CalendarDays, FileText, Sparkles, Plus,
-  RefreshCw, Check, Circle, Mic, Languages, Volume2, UploadCloud,
-  Search, Clock3, AlertCircle, Loader2, ArrowRight, X, UserRound,
-  HeartHandshake, PhoneCall
-} from 'lucide-react'
+import IntegrationsCentre from './IntegrationsCentre'
 
 const tabs = [
   ['patients','People',Users], ['journeys','Journeys',HeartHandshake],
   ['tasks','Tasks',ListChecks], ['appointments','Appointments',CalendarDays],
-  ['documents','Documents',FileText], ['ai','Sarvam AI',Sparkles]
-  ['voice', 'Voice & Outreach', PhoneCall]
+  ['documents','Documents',FileText], ['ai','Sarvam AI',Sparkles],
+  ['voice','Voice & Outreach',PhoneCall], ['integrations','Integrations',Smartphone]
 ]
 const callApi = async (session, method='GET', body=null) => {
   const response = await fetch('/api/continuum', {
@@ -58,6 +54,7 @@ export default function OperationsCentre({ session }) {
   const [docPatient,setDocPatient] = useState('')
   const [docFile,setDocFile] = useState(null)
   const [docType,setDocType] = useState('Other')
+  const [docSource,setDocSource] = useState('manual_upload')
   const [docJob,setDocJob] = useState(null)
   const [docReview,setDocReview] = useState(null)
   const [aiPrompt,setAiPrompt] = useState('')
@@ -123,7 +120,7 @@ export default function OperationsCentre({ session }) {
       const path = `${clinicId}/${docPatient}/${Date.now()}-${safeName}`
       const {error:uploadError} = await supabase.storage.from('continuum-documents').upload(path,docFile,{upsert:false,contentType:docFile.type})
       if (uploadError) throw uploadError
-      await callApi(session,'POST',{action:'document',patient_id:docPatient,file_name:docFile.name,storage_path:path,mime_type:docFile.type,document_type:docType})
+      await callApi(session,'POST',{action:'document',patient_id:docPatient,file_name:docFile.name,storage_path:path,mime_type:docFile.type,document_type:docType,source_system:docSource})
       setDocFile(null); setNotice('Document uploaded and added to the review inbox.'); await refresh()
     } catch(e) { setError(e.message) }
     finally { setBusy(false) }
@@ -342,13 +339,14 @@ export default function OperationsCentre({ session }) {
       {tab==='documents'&&<div className="oc-grid">
         <form className="oc-card" onSubmit={uploadDocument}><h3><UploadCloud size={17}/> Secure document inbox</h3>
           {field('Link to patient',<select required value={docPatient} onChange={e=>setDocPatient(e.target.value)}><option value="">Choose patient</option>{patients.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select>)}
-          {field('Document category',<select value={docType} onChange={e=>setDocType(e.target.value)}><option>Other</option><option>Lab report</option><option>Referral letter</option><option>Discharge summary</option><option>Identity document</option><option>Appointment document</option></select>)}
+          {field('Document category',<select value={docType} onChange={e=>setDocType(e.target.value)}><option>Other</option><option>Lab report</option><option>Referral letter</option><option>Discharge summary</option><option>Identity document</option><option>Appointment document</option><option>ABHA-linked health record</option><option>U-WIN immunisation certificate</option></select>)}
+          {field('Document source',<select value={docSource} onChange={e=>setDocSource(e.target.value)}><option value="manual_upload">Patient-provided upload</option><option value="abdm_export">ABHA-linked export (patient-authorised)</option><option value="uwin_export">U-WIN certificate export</option></select>)}
           {field('Choose file (PDF, JPG, PNG)',<input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e=>setDocFile(e.target.files?.[0]||null)}/>)}
           {button('Upload document',<UploadCloud size={15}/>)}
           <p className="oc-help">Files are stored in a private Supabase bucket. AI output is a draft for staff review, never a clinical interpretation.</p>
         </form>
         <div className="oc-card"><div className="oc-card-head"><h3>Received documents</h3><span>{data.documents.length}</span></div>
-          {data.documents.map(d=><div className="oc-doc" key={d.id}><div className="oc-row-main"><b>{d.file_name}</b><small>{patientName(d.patient_id)} · {d.document_type||'Unclassified'} · {d.review_status}</small></div><div className="oc-doc-actions"><button className="oc-secondary" onClick={()=>runDocAI(d,'classify')} disabled={busy}>Classify</button><button className="oc-secondary" onClick={()=>runDocAI(d,'extract')} disabled={busy}>Extract fields</button></div></div>)}
+          {data.documents.map(d=><div className="oc-doc" key={d.id}><div className="oc-row-main"><b>{d.file_name}</b><small>{patientName(d.patient_id)} · {d.document_type||'Unclassified'} · {d.source_system||'manual_upload'} · {d.review_status}</small></div><div className="oc-doc-actions"><button className="oc-secondary" onClick={()=>runDocAI(d,'classify')} disabled={busy}>Classify</button><button className="oc-secondary" onClick={()=>runDocAI(d,'extract')} disabled={busy}>Extract fields</button></div></div>)}
           {docJob && (
   <div className="oc-job">
     <div className="oc-card-head">
@@ -491,6 +489,7 @@ export default function OperationsCentre({ session }) {
       </div>}
 
       {tab === 'voice' && <VoiceOutreach session={session} />}
+      {tab === 'integrations' && <IntegrationsCentre session={session} />}
               
     </>}
   </section>
