@@ -107,3 +107,34 @@ test('public call view masks the saved number', () => {
   assert.equal(result.phoneMasked,'+91 •••••• 10');
   assert.equal('phone' in result,false);
 });
+
+
+test('emergency and clinical redirects are never counted as reminder delivery', () => {
+  const emergency = deriveOutcome({payload:{status:'connected',final_agent_variables:{
+    identity_verified:true,message_delivered:true,call_disposition:'emergency_redirected',recipient_response:'emergency_reported'
+  }}});
+  assert.equal(emergency.callDisposition,'emergency_redirected');
+  assert.equal(emergency.recipientResponse,'emergency_reported');
+  assert.equal(emergency.messageDelivered,false);
+
+  const clinical = deriveOutcome({payload:{status:'connected',final_agent_variables:{
+    identity_verified:true,message_delivered:true,call_disposition:'clinical_query_redirected',recipient_response:'clinical_question_redirected'
+  }}});
+  assert.equal(clinical.callDisposition,'clinical_query_redirected');
+  assert.equal(clinical.recipientResponse,'clinical_question_redirected');
+  assert.equal(clinical.messageDelivered,false);
+});
+
+test('documented agent disposition aliases normalize to supported Continuum outcomes', () => {
+  const acknowledged = deriveOutcome({payload:{status:'connected',final_agent_variables:{
+    identity_verified:true,message_delivered:true,call_disposition:'acknowledged',recipient_response:'confirmed'
+  }}});
+  assert.equal(acknowledged.callDisposition,'message_delivered');
+  assert.equal(acknowledged.messageDelivered,true);
+
+  const wrongNumber = deriveOutcome({payload:{status:'connected',final_agent_variables:{
+    identity_verified:true,message_delivered:true,call_disposition:'wrong_number'
+  }}});
+  assert.equal(wrongNumber.callDisposition,'wrong_person');
+  assert.equal(wrongNumber.messageDelivered,false);
+});
