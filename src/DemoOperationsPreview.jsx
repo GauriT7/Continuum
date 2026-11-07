@@ -26,6 +26,16 @@ export default function DemoOperationsPreview({ initialTab = 'patients' }) {
   const [aiPreview, setAiPreview] = useState(false)
   const [voiceSimulated, setVoiceSimulated] = useState(false)
   const [appointmentState, setAppointmentState] = useState('Scheduled')
+  const [workflowStep, setWorkflowStep] = useState(0)
+
+  const workflow = [
+    { label: 'Care need identified', system: 'Continuum journey', detail: 'A pending investigation and upcoming visit are visible in one patient timeline.', owner: 'Care coordinator', outcome: 'A single, shared next-step list', icon: HeartHandshake },
+    { label: 'Document received', system: 'Document inbox + AI', detail: 'A report is attached to the journey. AI can draft metadata; a staff member verifies it against the source.', owner: 'Clinic staff', outcome: 'Reviewed document record', icon: FileText },
+    { label: 'Follow-up organised', system: 'Workflow assistant', detail: 'Administrative tasks are suggested, assigned and tracked instead of remaining in chat threads.', owner: 'Care team', outcome: 'Named owner and due item', icon: ListChecks },
+    { label: 'Patient contacted', system: 'Multilingual voice / messaging', detail: 'A clinic-approved reminder can be prepared in the preferred language after consent and recipient checks.', owner: 'Approved communication channel', outcome: 'Recorded response or exception', icon: PhoneCall },
+    { label: 'Care loop closed', system: 'Operations + audit trail', detail: 'Confirmation, callback, reschedule, opt-out or escalation returns to the clinic task queue for human action.', owner: 'Clinic team', outcome: 'Visible next action; no silent hand-off', icon: ShieldCheck }
+  ]
+  const activeWorkflow = workflow[workflowStep]
 
   const openTasks = useMemo(() => tasks.filter(t => !t.done).length, [tasks])
 
@@ -39,6 +49,45 @@ export default function DemoOperationsPreview({ initialTab = 'patients' }) {
       <span className="oc-pill">DEMO MODE</span>
     </div>
     <div className="oc-notice"><ShieldCheck size={15}/> No live patient records, file uploads, messages, reminders or phone calls are used in this guest workspace.</div>
+    <section className="oc-walkthrough" aria-label="End-to-end care workflow walkthrough">
+      <div className="oc-walkthrough-top">
+        <div>
+          <div className="oc-walkthrough-kicker">THE CONTINUUM CARE LOOP · INTERACTIVE WALKTHROUGH</div>
+          <h3>From a missed step to a closed loop of care.</h3>
+          <p>Follow one fictional patient journey across people, documents, tasks, communication and clinic follow-up.</p>
+        </div>
+        <span className="oc-walkthrough-tag">ILLUSTRATIVE DEMO</span>
+      </div>
+      <div className="oc-walkthrough-stats">
+        <div><b>1</b><span>shared journey</span></div>
+        <div><b>5</b><span>connected workflow stages</span></div>
+        <div><b>1</b><span>human-owned follow-up loop</span></div>
+      </div>
+      <div className="oc-walkthrough-track">
+        {workflow.map((step,index) => {
+          const StepIcon = step.icon
+          return <button type="button" key={step.label} className={`oc-walk-step ${index===workflowStep?'active':''} ${index<workflowStep?'visited':''}`} onClick={()=>setWorkflowStep(index)} aria-current={index===workflowStep?'step':undefined}>
+            <span className="oc-walk-number">{index<workflowStep?'✓':index+1}</span>
+            <StepIcon size={16}/>
+            <span>{step.label}</span>
+          </button>
+        })}
+      </div>
+      <div className="oc-walk-detail">
+        <div className="oc-walk-detail-icon"><activeWorkflow.icon size={21}/></div>
+        <div className="oc-walk-copy">
+          <div className="oc-walk-meta"><span>STAGE {workflowStep+1} OF {workflow.length}</span><span>{activeWorkflow.system}</span></div>
+          <h4>{activeWorkflow.label}</h4>
+          <p>{activeWorkflow.detail}</p>
+          <div className="oc-walk-outcomes"><span><small>OWNER</small><b>{activeWorkflow.owner}</b></span><span><small>OUTPUT</small><b>{activeWorkflow.outcome}</b></span></div>
+        </div>
+        <div className="oc-walk-controls">
+          <button type="button" className="oc-secondary" onClick={()=>setWorkflowStep(s=>Math.max(0,s-1))} disabled={workflowStep===0}>Back</button>
+          <button type="button" className="oc-primary" onClick={()=>setWorkflowStep(s=>s===workflow.length-1?0:s+1)}>{workflowStep===workflow.length-1?'Replay journey':'Next stage'} <ArrowRight size={14}/></button>
+        </div>
+      </div>
+      <p className="oc-walk-footnote"><Info size={13}/> These are workflow design counts, not clinical outcome or impact metrics. All patient records and interactions below are fictional and local to this preview.</p>
+    </section>
     <div className="oc-tabs">
       {sections.map(([id,label,Icon]) => <button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon size={15}/>{label}</button>)}
     </div>
