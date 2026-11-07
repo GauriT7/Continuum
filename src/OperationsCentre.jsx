@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import './operations.css'
 import VoiceOutreach from './VoiceOutreach'
+import InstantVoiceAgent from './InstantVoiceAgent'
 import IntegrationsCentre from './IntegrationsCentre'
 
 const tabs = [
@@ -509,7 +510,7 @@ export default function OperationsCentre({ session, initialTab = 'patients' }) {
         </div>
       </div>}
 
-      {tab === 'voice' && <VoiceOutreach session={session} />}
+      {tab === 'voice' && <><InstantVoiceAgent session={session} patients={patients} initialMessage={voiceText}/><details className="oc-legacy-voice"><summary>Existing scheduled campaign calling</summary><p className="oc-help">This is the existing cohort-based workflow. The new single-recipient Sarvam Voice Agent above uses a separate API, records and webhook.</p><VoiceOutreach session={session}/></details></>}
       {tab === 'integrations' && <IntegrationsCentre session={session} />}
               
     </>}
