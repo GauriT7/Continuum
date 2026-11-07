@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       const [clinicRes, patientsRes, journeysRes, tasksRes, appointmentsRes, documentsRes] = await Promise.all([
         supabase.from('clinics').select('id,name').in('id', clinicIds),
         supabase.from('patients').select('id,clinic_id,full_name,phone,date_of_birth,created_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(200),
-        supabase.from('journeys').select('id,patient_id,journey_type,status,created_at').order('created_at', { ascending: false }).limit(300),
+        supabase.from('journeys').select('id,patient_id,journey_type,status').limit(300),        
         supabase.from('tasks').select('id,clinic_id,patient_id,journey_id,title,description,assigned_role,status,due_at,created_at,updated_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(300),
         supabase.from('appointments').select('id,clinic_id,patient_id,scheduled_at,appointment_type,status,created_at').in('clinic_id', clinicIds).order('scheduled_at', { ascending: true }).limit(200),
         supabase.from('documents').select('id,clinic_id,patient_id,file_name,storage_path,mime_type,document_type,review_status,created_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(200)
