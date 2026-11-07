@@ -340,7 +340,7 @@ export default function OperationsCentre({ session }) {
           <p className="oc-help">Files are stored in a private Supabase bucket. AI output is a draft for staff review, never a clinical interpretation.</p>
         </form>
         <div className="oc-card"><div className="oc-card-head"><h3>Received documents</h3><span>{data.documents.length}</span></div>
-          {data.documents.map(d=><div className="oc-doc" key={d.id}><div className="oc-row-main"><b>{d.file_name}</b><small>{patientName(d.patient_id)} · {d.document_type||'Unclassified'} · {d.review_status}</small></div><div className="oc-doc-actions"><button className="oc-secondary" onClick={()=>runDocAI(d,'classify')} disabled={busy}>Classify</button><button className="oc-secondary" onClick={()=>runDocAI(d,'extract')} disabled={busy}>Extract fields</button><button className="oc-secondary" onClick={()=>patch('document',{id:d.id,review_status:'reviewed'})}>Mark reviewed</button></div></div>)}
+          {data.documents.map(d=><div className="oc-doc" key={d.id}><div className="oc-row-main"><b>{d.file_name}</b><small>{patientName(d.patient_id)} · {d.document_type||'Unclassified'} · {d.review_status}</small></div><div className="oc-doc-actions"><button className="oc-secondary" onClick={()=>runDocAI(d,'classify')} disabled={busy}>Classify</button><button className="oc-secondary" onClick={()=>runDocAI(d,'extract')} disabled={busy}>Extract fields</button></div></div>)}
           {docJob && (
   <div className="oc-job">
     <div className="oc-card-head">
