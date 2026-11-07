@@ -39,8 +39,8 @@ const callSarvam = async (session, body) => {
 }
 const fmt = value => value ? new Date(value).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}) : 'No date set'
 
-export default function OperationsCentre({ session }) {
-  const [tab,setTab] = useState('patients')
+export default function OperationsCentre({ session, initialTab = 'patients' }) {
+  const [tab,setTab] = useState(initialTab)
   const [data,setData] = useState({clinics:[],patients:[],journeys:[],tasks:[],appointments:[],documents:[]})
   const [loading,setLoading] = useState(true)
   const [busy,setBusy] = useState(false)
