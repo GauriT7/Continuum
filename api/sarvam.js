@@ -144,14 +144,14 @@ const speaker = defaultSpeakers[language] || 'ritu_mr_narration'
             document_date: { type: 'string', description: 'Date printed on the document, if present.' },
             patient_name: { type: 'string', description: 'Patient name printed on the document, if present.' },
             issuing_facility: { type: 'string', description: 'Name of issuing facility or laboratory, if present.' },
-            document_type: { type: 'string', description: 'Administrative document category, such as lab report, referral letter, discharge summary, identity form, or other.' }
+            document_type: { type: 'string', description: 'Administrative document category, such as lab report, referral letter, discharge summary, identity form, ABHA-linked health record, U-WIN immunisation certificate, or other.' }
           }
         }
         form.append('schema', JSON.stringify(schema))
         form.append('output_format', 'json')
       }
       if (operation === 'classify') {
-        form.append('categories', 'lab report, referral letter, discharge summary, identity document, appointment document, other')
+        form.append('categories', 'lab report, referral letter, discharge summary, identity document, appointment document, ABHA-linked health record, U-WIN immunisation certificate, other')
       }
       const response = await fetch(`${SARVAM}/doc-ai/v1/job/${operation}`, {
         method: 'POST', headers: { 'api-subscription-key': key }, body: form

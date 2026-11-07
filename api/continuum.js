@@ -29,21 +29,27 @@ export default async function handler(req, res) {
     const body = req.method === 'GET' ? {} : json(req)
 
     if (req.method === 'GET' && action === 'bootstrap') {
-      const [clinicRes, patientsRes, journeysRes, tasksRes, appointmentsRes, documentsRes] = await Promise.all([
+      const demoMode = process.env.CONTINUUM_DEMO_MODE === 'true'
+      const [clinicRes, patientsRes, tasksRes, appointmentsRes, documentsRes] = await Promise.all([
         supabase.from('clinics').select('id,name').in('id', clinicIds),
-        supabase.from('patients').select('id,clinic_id,full_name,phone,date_of_birth,created_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(200),
-        supabase.from('journeys').select('id,patient_id,journey_type,status').limit(300),        
+        supabase.from('patients').select('id,clinic_id,full_name,phone,date_of_birth,created_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(demoMode ? 3 : 200),
         supabase.from('tasks').select('id,clinic_id,patient_id,journey_id,title,description,assigned_role,status,due_at,created_at,updated_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(300),
         supabase.from('appointments').select('id,clinic_id,patient_id,scheduled_at,appointment_type,status,created_at').in('clinic_id', clinicIds).order('scheduled_at', { ascending: true }).limit(200),
-        supabase.from('documents').select('id,clinic_id,patient_id,file_name,storage_path,mime_type,document_type,review_status,created_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(200)
+        supabase.from('documents').select('id,clinic_id,patient_id,file_name,storage_path,mime_type,document_type,source_system,review_status,created_at').in('clinic_id', clinicIds).order('created_at', { ascending: false }).limit(200)
       ])
-      const firstError = [clinicRes, patientsRes, journeysRes, tasksRes, appointmentsRes, documentsRes].find(x => x.error)
+      const firstError = [clinicRes, patientsRes, tasksRes, appointmentsRes, documentsRes].find(x => x.error)
       if (firstError) return fail(res, 400, firstError.error.message)
+      const patientIds = (patientsRes.data || []).map(p => p.id)
+      const journeysRes = patientIds.length
+        ? await supabase.from('journeys').select('id,patient_id,journey_type,status').in('patient_id', patientIds).limit(300)
+        : { data: [], error: null }
+      if (journeysRes.error) return fail(res, 400, journeysRes.error.message)
+      const demoFilter = rows => demoMode ? (rows || []).filter(row => patientIds.includes(row.patient_id)) : rows
       return res.status(200).json({
         ok: true, user: { id: auth.user.id, email: auth.user.email },
         clinics: clinicRes.data, memberships,
-        patients: patientsRes.data, journeys: journeysRes.data, tasks: tasksRes.data,
-        appointments: appointmentsRes.data, documents: documentsRes.data
+        patients: patientsRes.data, journeys: journeysRes.data, tasks: demoFilter(tasksRes.data),
+        appointments: demoFilter(appointmentsRes.data), documents: demoFilter(documentsRes.data)
       })
     }
 
@@ -191,11 +197,16 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST' && action === 'document') {
       if (!body.patient_id || !body.file_name || !body.storage_path) return fail(res, 400, 'Document metadata is incomplete.')
+      const sourceSystem = ['manual_upload','abdm_export','uwin_export'].includes(body.source_system) ? body.source_system : 'manual_upload'
+      const consentReference = String(body.external_consent_reference || '').trim().slice(0,120)
+      if (sourceSystem !== 'manual_upload' && !consentReference) return fail(res, 400, 'A clinic consent reference is required for patient-authorised imports.')
+      const { data: linkedPatient, error: patientError } = await supabase.from('patients').select('id,clinic_id').eq('id', body.patient_id).single()
+      if (patientError || !clinicIds.includes(linkedPatient?.clinic_id)) return fail(res, 403, 'Patient is not in your clinic.')
       const { data, error } = await supabase.from('documents').insert({
         clinic_id: clinicId, patient_id: body.patient_id,
         file_name: body.file_name, storage_path: body.storage_path,
         mime_type: body.mime_type || null,
-        document_type: body.document_type || null, review_status: 'pending'
+        document_type: body.document_type || null, source_system: sourceSystem, external_consent_reference: consentReference || null, review_status: 'pending'
       }).select().single()
       if (error) return fail(res, 400, error.message)
       return res.status(201).json({ ok: true, document: data })

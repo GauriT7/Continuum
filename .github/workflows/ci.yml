@@ -1,0 +1,33 @@
+name: Continuum build verification
+
+on:
+  push:
+    branches:
+      - main
+      - feature/continuum-integrations-mvp
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check API route syntax
+        run: |
+          for file in api/*.js api/_lib/*.js; do
+            node --check "$file"
+          done
+      - name: Build production bundle
+        run: npm run build
