@@ -9,6 +9,16 @@ export default function LiveTasksPanel({ session }) {
   const [savingId, setSavingId] = useState(null)
 
   const loadTasks = useCallback(async () => {
+    if (demoMode) {
+      setTasks([
+        { id: 'demo-task-1', title: 'Review uploaded laboratory report', description: 'Ananya Mehta · Document inbox', assigned_role: 'Clinic coordinator', status: 'pending' },
+        { id: 'demo-task-2', title: 'Confirm Friday appointment', description: 'Priya Kulkarni · Appointment follow-up', assigned_role: 'Front desk', status: 'pending' },
+        { id: 'demo-task-3', title: 'Check partner document status', description: 'Sana Khan · Fertility journey', assigned_role: 'Care coordinator', status: 'completed' }
+      ])
+      setError('')
+      setLoading(false)
+      return
+    }
     if (!session?.access_token) {
       setError('Your session is not available. Please sign in again.')
       setLoading(false)
@@ -29,11 +39,17 @@ export default function LiveTasksPanel({ session }) {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token])
+  }, [session?.access_token, demoMode])
 
   useEffect(() => { loadTasks() }, [loadTasks])
 
   async function updateStatus(task) {
+    if (demoMode) {
+      setTasks(current => current.map(item => item.id === task.id
+        ? { ...item, status: item.status === 'completed' ? 'pending' : 'completed' }
+        : item))
+      return
+    }
     const nextStatus = task.status === 'completed' ? 'pending' : 'completed'
     setSavingId(task.id)
     setError('')
@@ -60,8 +76,8 @@ export default function LiveTasksPanel({ session }) {
     <section className="panel live-tasks-panel">
       <div className="section-head">
         <div>
-          <div className="eyebrow">SUPABASE · LIVE DATA</div>
-          <h2>Tasks from your database</h2>
+          <div className="eyebrow">{demoMode ? "GUEST DEMO · SAMPLE DATA" : "SUPABASE · LIVE DATA"}</div>
+          <h2>{demoMode ? "A sample clinic task queue" : "Tasks from your database"}</h2>
         </div>
         <button className="btn-light live-refresh" onClick={loadTasks} disabled={loading}>
           <RefreshCw size={14}/> Refresh
@@ -94,7 +110,7 @@ export default function LiveTasksPanel({ session }) {
 
       <div className="live-task-foot">
         <ClipboardList size={14}/>
-        <span>Changes are saved to Supabase when you update a task.</span>
+        <span>{demoMode ? "Demo only · Changes stay in this browser session." : "Changes are saved to Supabase when you update a task."}</span>
       </div>
     </section>
   )
