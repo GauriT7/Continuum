@@ -24,13 +24,12 @@ const patients = [
  {id:'ML-2048',name:'Ananya Mehta',stage:'Fertility care',owner:'Dr. N. Shah',progress:72,next:'Report collection',due:'Today',status:'Needs attention',tone:'amber',initials:'AM',phone:'+91 98••• 2140'},
  {id:'ML-2051',name:'Priya Kulkarni',stage:'Antenatal care',owner:'Sister R. Patil',progress:86,next:'Confirm appointment',due:'Today',status:'On track',tone:'green',initials:'PK',phone:'+91 98••• 7312'},
  {id:'ML-2055',name:'Sana Khan',stage:'Fertility care',owner:'Dr. N. Shah',progress:48,next:'Partner document',due:'Tomorrow',status:'Waiting on patient',tone:'blue',initials:'SK',phone:'+91 99••• 1058'},
- {id:'ML-2060',name:'Meera Joshi',stage:'Postpartum',owner:'Field team',progress:91,next:'Handover acknowledgement',due:'Nov 10',status:'On track',tone:'green',initials:'MJ',phone:'+91 97••• 6682'}
 ]
 const navItems = [
  {id:'overview',label:'Overview',icon:LayoutDashboard},
  {id:'patients',label:'People & journeys',icon:Users},
  {id:'tasks',label:'Task queue',icon:ListChecks,badge:'12'},
- {id:'documents',label:'Document inbox',icon:Inbox,badge:'4'},
+ {id:'documents',label:'Document inbox',icon:Inbox,badge:'3'},
  {id:'messages',label:'Communication',icon:MessageCircle},
  {id:'operations',label:'Operations Centre',icon:Workflow},
 ]
