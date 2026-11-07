@@ -46,15 +46,15 @@ if (action === 'tts') {
 
   const language = body.language_code || 'mr-IN'
 
-  const defaultSpeakers = {
-    'hi-IN': 'ritu_hi_customer',
-    'mr-IN': 'ritu_mr_conversational',
-    'en-IN': 'manisha',
-    'ta-IN': 'arvind',
-    'te-IN': 'karun'
-  }
+const defaultSpeakers = {
+  'hi-IN': 'ritu_hi_customer',
+  'mr-IN': 'ritu_mr_narration',
+  'en-IN': 'aditi',
+  'ta-IN': 'vijay',
+  'te-IN': 'kavitha'
+}
 
-  const speaker = body.speaker || defaultSpeakers[language] || 'ritu_hi_customer'
+const speaker = defaultSpeakers[language] || 'ritu_mr_narration'
 
   const response = await fetch(`${SARVAM}/text-to-speech`, {
     method: 'POST',
