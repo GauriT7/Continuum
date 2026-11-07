@@ -1,4 +1,3 @@
-\
 import { getSupabaseForRequest } from './_lib/supabase.js'
 
 const json = (req) => typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
