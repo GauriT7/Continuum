@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const db=()=>createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}})
-const languageName=code=>({'en-IN':'English','hi-IN':'Hindi','mr-IN':'Marathi','ta-IN':'Tamil','te-IN':'Telugu','kn-IN':'Kannada','gu-IN':'Gujarati','bn-IN':'Bengali','pa-IN':'Punjabi','ml-IN':'Malayalam','or-IN':'Odia'})[code]||'English'
+const languageName=code=>({'en-IN':'English','hi-IN':'Hindi','mr-IN':'Marathi'})[code]||'English'
+const ageInYears=dobValue=>{
+  const match=/^(\\d{4})-(\\d{2})-(\\d{2})/.exec(String(dobValue||''))
+  if(!match)return null
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]))
+  const year=Number(parts.year),month=Number(parts.month),day=Number(parts.day)
+  const by=Number(match[1]),bm=Number(match[2]),bd=Number(match[3])
+  return year-by-((month<bm||(month===bm&&day<bd))?1:0)
+}
 
 export default async function handler(req,res){
   if(!['GET','POST'].includes(req.method))return fail(res,405,'Method not allowed.')
@@ -29,9 +37,8 @@ export default async function handler(req,res){
   const users=[],blocked=[]
   for(const c of claimed){
     const p=patients.get(c.patient_id),v=prefs.get(c.patient_id),clinic=clinics.get(c.clinic_id),context=c.context||{}
-    const dob=p?.date_of_birth?new Date(p.date_of_birth):null
-    if(!dob||Number.isNaN(dob.getTime())){blocked.push(c.id);continue}
-    const today=new Date(),age=today.getFullYear()-dob.getFullYear()-(today.getMonth()<dob.getMonth()||(today.getMonth()===dob.getMonth()&&today.getDate()<dob.getDate())?1:0)
+    const age=ageInYears(p?.date_of_birth)
+    if(age===null){blocked.push(c.id);continue}
     const patientIsMinor=age<18
     const language=c.language_code||v?.language_code||'en-IN'
     const requiresAppointment=['appointment_confirmation','reschedule_request','postpartum_followup'].includes(c.purpose)
