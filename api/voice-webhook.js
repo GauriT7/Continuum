@@ -19,7 +19,7 @@ const flagsAllowed=new Set([
 ])
 const enumValue=(v,allowed,fallback)=>allowed.has(String(v||''))?String(v):fallback
 
-function sanitiseOutputs(raw,callId,providerDuration,providerInteractionId){
+function sanitiseOutputs(raw,callId,providerDuration){
   const rawCommitments=raw.commitments&&typeof raw.commitments==='object'?raw.commitments:{}
   const attending=enumValue(rawCommitments.attending,new Set(['yes','no','unsure','not_discussed']),'not_discussed')
   const timeWindow=enumValue(rawCommitments.preferred_time_window,new Set(['morning','afternoon','evening','any','not_discussed']),'not_discussed')
@@ -55,7 +55,7 @@ function sanitiseOutputs(raw,callId,providerDuration,providerInteractionId){
     flags,
     turn_count:numeric(raw.turn_count,500),
     duration_seconds:numeric(raw.duration_seconds??providerDuration,240),
-    transcript_ref:shortText(raw.transcript_ref||providerInteractionId,500)||null
+    transcript_ref:shortText(raw.transcript_ref,500)||null
   }
 }
 
@@ -78,7 +78,7 @@ export default async function handler(req,res){
     if(existingAttempt)return res.status(200).json({ok:true,duplicate:true})
 
     const connectivity=String(b.connectivity_status||'').toLowerCase()
-    const outputs=sanitiseOutputs(b.output_agent_variables||b.final_agent_variables||{},callId,b.duration,b.interaction_id)
+    const outputs=sanitiseOutputs(b.output_agent_variables||b.final_agent_variables||{},callId,b.duration)
     const optedOut=outputs.opt_out_requested
     const callback=outputs.callback_requested||outputs.needs_human_followup||
       (['busy','no_answer'].includes(connectivity)&&Number(call.attempt_count||0)>=2)
