@@ -8,7 +8,7 @@ const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
 const allowedLanguages=new Set(['en-IN','hi-IN','mr-IN'])
 const allowedPurposes=new Set(['appointment_confirmation','documents_pending','reschedule_request','postpartum_followup','callback_request'])
-const callingHolidays=String(process.env.CALLING_HOLIDAYS||'').split(',').map(x=>x.trim()).filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x))
+const callingHolidays=String(process.env.CALLING_HOLIDAYS||'').split(',').map(x=>x.trim()).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x))
 const adminDb=()=>{
   const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY
   if(!url||!key)throw new Error('Service role access is required to enforce call revocation.')
