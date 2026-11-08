@@ -1,5 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-// Absolute asset paths are required because the public /voice/join route
-// rewrites to the SPA while the browser URL remains nested.
-export default defineConfig({ plugins:[react()], base:'/' })
+import { resolve } from 'node:path'
+
+// The public voice invitation is built as its own HTML entrypoint. This avoids
+// depending on the authenticated dashboard SPA to render /voice/join.
+export default defineConfig({
+  plugins: [react()],
+  base: '/',
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(process.cwd(), 'index.html'),
+        voiceJoin: resolve(process.cwd(), 'voice-join.html'),
+      },
+    },
+  },
+})
