@@ -13,6 +13,11 @@ This is a browser-to-browser internet voice session. It does not dial an ordinar
 
 Existing required Supabase settings are reused: SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY.
 
+## Public invitation URL
+Set `PUBLIC_BASE_URL` in the Vercel **Production** environment to the canonical HTTPS origin of the Continuum app (for example, `https://your-production-domain`, with no path). Invitation links will use this origin even when staff create them from a preview deployment. If it is not configured, the API falls back to the request host.
+
+After changing this variable, redeploy the Production environment.
+
 ## Supabase migration
 Review and apply supabase-livekit-voice-migration.sql in the correct Supabase project. The API requires the livekit_voice_invites table. It is separate from the Sarvam call tables and legacy campaign calls.
 
