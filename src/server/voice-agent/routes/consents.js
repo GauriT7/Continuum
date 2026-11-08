@@ -1,5 +1,6 @@
 import { requireVoiceStaff,fail,bodyOf,getPatientForStaff,latestConsent } from '../../../../api/_lib/voice-agent.js';
 import { normalizePhone,calculateAge } from '../runtime.js';
+import { syncAgentConsentToCampaign } from '../../../../api/_lib/voice-consent-sync.js';
 const sources=new Set(['verbal_in_clinic','written_form','digital_form','phone_confirmation']);
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
@@ -18,9 +19,12 @@ export default async function handler(req,res){
   if(b.action==='revoke'){
    if(b.confirmed!==true)return fail(res,400,'Confirm consent revocation.','confirmation_required');
    if(!existing)return fail(res,404,'No consent record exists for the saved number.');
-   const {error}=await db.from('voice_agent_consents').update({consent_status:'revoked',updated_at:new Date().toISOString()}).eq('id',existing.id);
+   const now=new Date().toISOString();
+   const {error}=await db.from('voice_agent_consents').update({consent_status:'revoked',updated_at:now}).eq('id',existing.id);
    if(error)return fail(res,400,error.message);
-   await db.from('voice_agent_calls').update({status:'blocked',updated_at:new Date().toISOString()}).eq('patient_id',p.id).eq('clinic_id',p.clinic_id).in('status',['pending','initiating']);
+   const {error:blockError}=await db.from('voice_agent_calls').update({status:'blocked',updated_at:now}).eq('patient_id',p.id).eq('clinic_id',p.clinic_id).in('status',['pending','initiating']);
+   if(blockError)return fail(res,500,'Consent was revoked, but pending instant calls could not be blocked.');
+   await syncAgentConsentToCampaign(db,{patient:p,phone:phone.e164,status:'revoked',recordedBy:user.id,guardianConfirmed:existing.guardian_confirmed===true});
    return res.status(200).json({ok:true,consent:{status:'revoked'}});
   }
   if(b.confirmed!==true)return fail(res,400,'Confirm that explicit automated-call consent was obtained.','consent_confirmation_required');
@@ -33,6 +37,7 @@ export default async function handler(req,res){
   const row={clinic_id:p.clinic_id,patient_id:p.id,phone_e164:phone.e164,consent_status:'granted',consent_source:b.source,consent_recorded_by:user.id,consent_recorded_at:new Date().toISOString(),guardian_confirmed:age<18,updated_at:new Date().toISOString()};
   const {data,error}=await db.from('voice_agent_consents').upsert(row,{onConflict:'patient_id,phone_e164'}).select().single();
   if(error)return fail(res,400,error.message);
+  await syncAgentConsentToCampaign(db,{patient:p,phone:phone.e164,status:'granted',recordedBy:user.id,guardianConfirmed:data.guardian_confirmed===true});
   return res.status(201).json({ok:true,consent:{status:data.consent_status,source:data.consent_source,recordedAt:data.consent_recorded_at,guardianConfirmed:data.guardian_confirmed}});
  }catch(error){return fail(res,error.status||500,error.message||'Unexpected consent error.');}
 }
