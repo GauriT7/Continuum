@@ -56,3 +56,12 @@ test('invalid configured origins do not override a valid request host', () => {
     forwardedHost: 'continuum.vercel.app'
   }), 'https://continuum.vercel.app');
 });
+
+
+test('Vercel production domain wins over a preview host when no manual origin is set', () => {
+  assert.equal(resolvePublicBaseUrl({
+    vercelProductionUrl: 'continuum.example',
+    forwardedHost: 'continuum-git-feature-preview.vercel.app',
+    host: 'continuum-git-feature-preview.vercel.app'
+  }), 'https://continuum.example');
+});
