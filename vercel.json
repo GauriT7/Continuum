@@ -5,12 +5,12 @@
       "destination": "/api/voice-agent?path=:path*"
     },
     {
-      "source": "/voice/join/",
-      "destination": "/"
+      "source": "/voice/join",
+      "destination": "/voice-join.html"
     },
     {
-      "source": "/voice/join",
-      "destination": "/"
+      "source": "/voice/join/",
+      "destination": "/voice-join.html"
     }
   ],
   "headers": [
