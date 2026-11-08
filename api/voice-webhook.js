@@ -109,6 +109,22 @@ export default async function handler(req,res){
         consent_status:'revoked',consent_at:null,updated_at:now.toISOString()
       }).eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id)
       if(revokeError)return fail(res,500,revokeError.message)
+      const {data:preference,error:preferenceError}=await supabase.from('voice_contact_preferences').select('phone_e164').eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id).maybeSingle()
+      if(preferenceError)return fail(res,500,preferenceError.message)
+      if(preference?.phone_e164) {
+        const {data:existingConsent,error:existingConsentError}=await supabase.from('voice_agent_consents').select('id,consent_source').eq('patient_id',call.patient_id).eq('phone_e164',preference.phone_e164).maybeSingle()
+        if(existingConsentError)return fail(res,500,existingConsentError.message)
+        const {error:syncError}=await supabase.from('voice_agent_consents').upsert({
+          clinic_id:call.clinic_id,patient_id:call.patient_id,phone_e164:preference.phone_e164,
+          consent_status:'revoked',consent_source:existingConsent?.consent_source||'digital_form',
+          consent_recorded_at:now.toISOString(),opted_out:optedOut||existingConsent?.opted_out===true,
+          opted_out_at:optedOut?now.toISOString():null,
+          wrong_number:outcome==='wrong_number'||existingConsent?.wrong_number===true,
+          wrong_number_at:outcome==='wrong_number'?now.toISOString():null,
+          updated_at:now.toISOString()
+        },{onConflict:'patient_id,phone_e164'})
+        if(syncError)return fail(res,500,'Could not synchronize the opt-out / wrong-number block.')
+      }
       const {error:blockError}=await supabase.from('voice_calls').update({
         status:'blocked',failure_reason:optedOut?'Patient or authorised family member opted out.':'Wrong number; clinic must re-verify contact details.',updated_at:now.toISOString()
       }).eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id)
