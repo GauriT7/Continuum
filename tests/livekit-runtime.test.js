@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getLiveKitConfig, hashInviteToken, createInviteToken, formatAppointmentDateTime, buildAppointmentReminder, buildLiveKitMetadata } from '../src/server/voice-agent/livekit-runtime.js';
+import { getLiveKitConfig, hashInviteToken, createInviteToken, formatAppointmentDateTime, buildAppointmentReminder, buildLiveKitMetadata, resolvePublicBaseUrl } from '../src/server/voice-agent/livekit-runtime.js';
 
 test('LiveKit configuration stays unready when secrets are missing', () => {
   const config = getLiveKitConfig({});
@@ -34,4 +34,25 @@ test('agent metadata uses the Agent Builder field names', () => {
   assert.equal(metadata.message_to_read, 'Your appointment is scheduled for 4 PM on Tuesday.');
   assert.equal(metadata.appointment_datetime, 'Tuesday, 4 PM');
   assert.equal(metadata.call_reference, 'DEMO-001');
+});
+
+
+test('configured public origin takes precedence over a deployment preview host', () => {
+  assert.equal(resolvePublicBaseUrl({
+    configuredOrigin: 'https://continuum.example/',
+    forwardedHost: 'continuum-git-feature-preview.vercel.app',
+    host: 'continuum-git-feature-preview.vercel.app'
+  }), 'https://continuum.example');
+});
+test('public origin falls back to the first forwarded host when no canonical origin is configured', () => {
+  assert.equal(resolvePublicBaseUrl({
+    forwardedHost: 'continuum.vercel.app, internal-proxy.local',
+    host: 'internal-proxy.local'
+  }), 'https://continuum.vercel.app');
+});
+test('invalid configured origins do not override a valid request host', () => {
+  assert.equal(resolvePublicBaseUrl({
+    configuredOrigin: 'https://continuum.example/path',
+    forwardedHost: 'continuum.vercel.app'
+  }), 'https://continuum.vercel.app');
 });
