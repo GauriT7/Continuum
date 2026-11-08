@@ -161,7 +161,7 @@ export function deriveOutcome({payload}) {
   const allowedResponses=new Set(['confirmed','repeated_and_confirmed','cannot_attend','callback_requested','wrong_person','opted_out','clinical_question_redirected','emergency_reported','unclear','no_response']);
   let response=allowedResponses.has(recipientResponse)?recipientResponse:'unclear';
   const identityVerified=bool(raw.identity_verified);
-  const wrongNumber=bool(raw.wrong_number)||response==='wrong_person';
+  const wrongNumber=bool(raw.wrong_number)||response==='wrong_person'||String(raw.call_disposition||'').toLowerCase()==='wrong_number';
   const optOut=bool(raw.opt_out)||response==='opted_out';
   const callbackRequested=bool(raw.callback_requested)||response==='callback_requested';
   const rescheduleRequested=bool(raw.reschedule_requested)||response==='cannot_attend';
