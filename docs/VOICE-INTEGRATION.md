@@ -69,11 +69,10 @@ The code prefers `SARVAM_VOICE_API_KEY`, then falls back to the existing `SARVAM
 | `SARVAM_AGENT_PHONE_NUMBER` | Config | Provider-issued outbound number in E.164 |
 | `VOICE_AGENT_WEBHOOK_SECRET` | Secret | Random, high-entropy secret for the webhook path |
 | `PUBLIC_BASE_URL` | Config | Stable public Continuum HTTPS origin |
-| `SARVAM_APP_DEPLOYED` | Config | Set to `true` only after confirming the exact app/version is deployed in Sarvam |
 | `SARVAM_CONNECTION_VERIFIED` | Config | Set to `true` only after confirming the connection and caller number can make outbound calls |
 | `VOICE_INSTANT_CALLS_ENABLED` | Config | Keep `false` until the controlled end-to-end test has passed |
 
-The instant calling readiness endpoint also uses Vercel's `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` as a fallback when `PUBLIC_BASE_URL` is omitted. Prefer an explicit stable production URL for callbacks.
+The instant outbound API submits the existing agent's `app_id` and `app_version` directly with a connected `connection_id` and `agent_phone_number`; it does not require creating a separate inbound Deployment. In Sarvam, the Builder's **Deploy** action creates an active phone-number deployment for inbound calls and begins accepting calls on that number. Do not use that action just to enable Continuum's outbound API path. Use it only when you intentionally want inbound callers to reach this agent on a chosen number. The instant calling readiness endpoint also uses Vercel's `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` as a fallback when `PUBLIC_BASE_URL` is omitted. Prefer an explicit stable production URL for callbacks.
 
 ### Scheduled Campaign
 
@@ -123,15 +122,14 @@ The dispatcher does not send a per-cohort callback URL in its request body; it r
 
 ## Activation sequence
 
-1. Verify exact Sarvam Voice Agents application ID and committed version.
-2. Deploy that version in Sarvam and verify its published deployment state.
-3. Attach and verify an outbound telephony connection and E.164 caller number.
-4. Add the instant-path variables in Vercel, with live calling still disabled.
-5. Configure the instant callback and verify a non-production or staff-controlled test event.
-6. Configure campaign ID, campaign Advanced webhook and external scheduler.
-7. Reconfirm any legacy campaign consent through the UI so it is mirrored to the instant consent table.
-8. Run automated tests and a controlled consenting staff-number test; verify call outcome, callback task, transcript handling, opt-out and duplicate event behaviour.
-9. Only then enable the corresponding dispatch flag. Keep the two flags independent.
+1. Verify the exact Sarvam Voice Agents application ID and committed app version.
+2. Attach and verify an outbound telephony connection and E.164 caller number. Do not create an inbound deployment unless inbound calling is also required.
+3. Add the instant-path variables in Vercel, with live calling still disabled.
+4. Configure the instant callback and verify a non-production or staff-controlled test event.
+5. Configure campaign ID, campaign Advanced webhook and external scheduler.
+6. Reconfirm any legacy campaign consent through the UI so it is mirrored to the instant consent table.
+7. Run automated tests and a controlled consenting staff-number test; verify call outcome, callback task, transcript handling, opt-out and duplicate event behaviour.
+8. Only then enable the corresponding dispatch flag. Keep the two flags independent.
 
 ## Claims we can and cannot make
 
