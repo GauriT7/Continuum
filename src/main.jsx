@@ -146,8 +146,36 @@ function FieldHome({notify,setActive,setWorkspace,updates,setUpdates,visitStates
   {showUpdate&&<div className="modal-backdrop" onClick={()=>setShowUpdate(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">FIELD NOTE</span><h2>Add a field update</h2></div><button className="icon-btn" type="button" onClick={()=>setShowUpdate(false)}><X/></button></div><p className="muted">Enter an administrative visit update. It stays in this demo session and is not submitted to a patient record.</p><textarea rows="4" value={updateText} onChange={e=>setUpdateText(e.target.value)} placeholder="Write what happened during the visit…"/><div className="modal-actions"><button className="btn-light" type="button" onClick={()=>setShowUpdate(false)}>Cancel</button><button className="btn-primary field-btn" type="button" disabled={!updateText.trim()} onClick={()=>{setUpdates(v=>[updateText.trim(),...v]);setUpdateText('');setShowUpdate(false);notify('Field update saved in this session')}}>Save update <Check size={14}/></button></div></div></div>}
  </div>
 }
-const isVoiceJoinRoute = window.location.pathname === '/voice/join'
+class VoiceJoinErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch(error) {
+    console.error('Continuum voice join page failed to render:', error)
+  }
+  render() {
+    if (this.state.failed) {
+      return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',padding:24,background:'#f7f8f5',fontFamily:'system-ui,sans-serif',color:'#26382d'}}>
+        <section style={{maxWidth:440,padding:28,border:'1px solid #e4e9e2',borderRadius:20,background:'#fff',textAlign:'center'}}>
+          <h1 style={{fontSize:23}}>We couldn't load this invitation</h1>
+          <p style={{lineHeight:1.6,color:'#718078'}}>The voice page encountered an error. Reload this page or ask your clinic to create a fresh invitation.</p>
+          <button onClick={() => window.location.reload()} style={{padding:'13px 22px',border:0,borderRadius:10,background:'#315a43',color:'#fff',fontWeight:700}}>Reload page</button>
+        </section>
+      </main>
+    }
+    return this.props.children
+  }
+}
+
+const normalizedPath = window.location.pathname.replace(/\\/+$/, '') || '/'
+const isVoiceJoinRoute = normalizedPath === '/voice/join'
 
 createRoot(document.getElementById('root')).render(
-  isVoiceJoinRoute ? <VoiceJoin /> : <AuthGate><App /></AuthGate>
+  isVoiceJoinRoute
+    ? <VoiceJoinErrorBoundary><VoiceJoin /></VoiceJoinErrorBoundary>
+    : <AuthGate><App /></AuthGate>
 )
