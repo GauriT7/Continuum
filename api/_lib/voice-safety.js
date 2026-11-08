@@ -18,14 +18,14 @@ export function istParts(date) {
     hour: Number(parts.hour) % 24,
     minute: Number(parts.minute),
     weekday: parts.weekday,
-    dateKey: \`\${parts.year}-\${parts.month}-\${parts.day}\`,
+    dateKey: parts.year + '-' + parts.month + '-' + parts.day,
   };
 }
 
 export function isWithinIstCallingWindow(date, start = '09:00', end = '20:00', holidays = []) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(start)) ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(end))) return false;
+  if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(start)) ||
+      !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(end))) return false;
   const p = istParts(date);
   const minuteOfDay = p.hour * 60 + p.minute;
   const startMinutes = Number(start.slice(0, 2)) * 60 + Number(start.slice(3));
