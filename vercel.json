@@ -5,8 +5,48 @@
       "destination": "/api/voice-agent?path=:path*"
     },
     {
+      "source": "/voice/join/",
+      "destination": "/"
+    },
+    {
       "source": "/voice/join",
       "destination": "/"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/voice/join",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "source": "/voice/join/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
     }
   ]
 }
