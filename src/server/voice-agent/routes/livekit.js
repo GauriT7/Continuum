@@ -158,10 +158,7 @@ async function joinInvite(req, res) {
   return res.status(200).json({
     ok: true, livekit_url: config.clientUrl, token: await accessToken.toJwt(),
     room_name: invite.room_name,
-    clinic_name: invite.metadata?.clinic_name || 'Continuum Partner Clinic',
-    patient_name: invite.metadata?.patient_name || 'Patient',
-    appointment_datetime: invite.metadata?.appointment_datetime || '',
-    message: invite.message, expires_at: invite.expires_at,
+    expires_at: invite.expires_at,
   });
 }
 

@@ -20,7 +20,6 @@ export default function VoiceJoin() {
   const audioElementsRef = useRef([]);
   const [status, setStatus] = useState('ready');
   const [error, setError] = useState('');
-  const [details, setDetails] = useState(null);
   const [muted, setMuted] = useState(false);
 
   useEffect(() => () => {
@@ -38,7 +37,6 @@ export default function VoiceJoin() {
     let room;
     try {
       const session = await post('/api/voice-agent/livekit/join', { token: tokenRef.current });
-      setDetails(session);
       room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
       room.on(RoomEvent.TrackSubscribed, track => {
@@ -121,11 +119,7 @@ export default function VoiceJoin() {
           <h1 style={{fontSize:25,letterSpacing:-.7,margin:'10px 0 7px'}}>{pageStatus[0]}</h1>
           <p style={{fontSize:13,lineHeight:1.6,color:'#738078',margin:0}}>{pageStatus[1]}</p>
         </div>
-        {details && <div style={{background:'#f7f9f6',borderRadius:14,padding:14,marginBottom:18}}>
-          <div style={{fontWeight:750,fontSize:13}}>{details.clinic_name}</div>
-          <div style={{fontSize:11,color:'#77847a',marginTop:4}}>{details.appointment_datetime}</div>
-          <p style={{fontSize:13,lineHeight:1.6,margin:'10px 0 0'}}>{details.message}</p>
-        </div>}
+        {status==='ready' && <div style={{background:'#f7f9f6',borderRadius:14,padding:14,marginBottom:18,fontSize:12,lineHeight:1.6,color:'#66776a'}}>After you join, the Continuum assistant will confirm who it is speaking with before sharing appointment details.</div>}
         {status==='ready' && <p style={{display:'flex',gap:8,fontSize:11,lineHeight:1.5,color:'#77847a',margin:'0 0 18px'}}><ShieldCheck size={15} style={{flex:'0 0 auto'}}/> Your microphone is used only during this voice session. This Continuum page does not initiate an audio recording.</p>}
         {error && <div style={{display:'flex',gap:8,background:'#fff0ee',padding:11,borderRadius:10,color:'#a23a32',fontSize:11,lineHeight:1.5,marginBottom:14}}><AlertCircle size={15} style={{flex:'0 0 auto'}}/>{error}</div>}
         <div style={{display:'grid',gridTemplateColumns:status==='connected'?'1fr 1fr':'1fr',gap:9}}>
