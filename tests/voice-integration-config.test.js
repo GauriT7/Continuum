@@ -15,7 +15,7 @@ test('existing SARVAM_API_KEY is accepted as a server-side compatibility alias',
   assert.equal(getSarvamApiKey({SARVAM_API_KEY:'old',SARVAM_VOICE_API_KEY:'new'}),'new');
 });
 
-test('instant calling remains unready until deployment and telephony are explicitly verified', () => {
+test('instant outbound calling requires a deployed app version and verified phone connection, not an inbound deployment', () => {
   const env = {
     SARVAM_API_KEY:'key',
     SARVAM_ORG_ID:'org',
@@ -28,9 +28,7 @@ test('instant calling remains unready until deployment and telephony are explici
     PUBLIC_BASE_URL:'https://continuum.example',
   };
   const missing = getInstantVoiceMissingSettings(env);
-  assert.ok(missing.includes('SARVAM_APP_DEPLOYED'));
   assert.ok(missing.includes('SARVAM_CONNECTION_VERIFIED'));
-  env.SARVAM_APP_DEPLOYED='true';
   env.SARVAM_CONNECTION_VERIFIED='true';
   assert.deepEqual(getInstantVoiceMissingSettings(env),[]);
 });
