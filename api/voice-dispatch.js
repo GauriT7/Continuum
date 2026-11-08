@@ -44,7 +44,7 @@ export default async function handler(req,res){
   }
   const users=[],blocked=[]
   let deferred=0
-  const holidays=String(process.env.CALLING_HOLIDAYS||'').split(',').map(x=>x.trim()).filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x))
+  const holidays=String(process.env.CALLING_HOLIDAYS||'').split(',').map(x=>x.trim()).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x))
   for(const c of claimed){
     const p=patients.get(c.patient_id),v=prefs.get(c.patient_id),clinic=clinics.get(c.clinic_id),context=c.context||{}
     const age=ageInYears(p?.date_of_birth)
