@@ -70,6 +70,7 @@ export default async function handler(req,res){
     const {data:call,error:ce}=await supabase.from('voice_calls')
       .select('id,clinic_id,patient_id,attempt_count,status').eq('id',callId).single()
     if(ce||!call)return fail(res,404,'Continuum call record not found.')
+    const nextAttemptCount=Number(call.attempt_count||0)+1
 
     // The stored attempt ID is an idempotency key; duplicate provider delivery is acknowledged.
     const {data:existingAttempt,error:existingError}=await supabase.from('voice_call_attempts')
@@ -140,6 +141,7 @@ export default async function handler(req,res){
 
     const update={
       status:nextStatus,call_outcome:outcome,call_duration:outputs.duration_seconds,
+      attempt_count:nextAttemptCount,
       callback_requested:outputs.callback_requested,failure_reason:shortText(b.failure_reason,300)||null,
       completed_at:nextStatus==='scheduled'?null:now.toISOString(),updated_at:now.toISOString()
     }
