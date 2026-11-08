@@ -4,7 +4,7 @@ import { requireVoiceStaff, adminDb, fail, bodyOf } from '../../../../api/_lib/v
 import { calculateAge } from '../runtime.js';
 import {
   getLiveKitConfig, hashInviteToken, createInviteToken,
-  buildAppointmentReminder, buildLiveKitMetadata
+  buildAppointmentReminder, buildLiveKitMetadata, resolvePublicBaseUrl
 } from '../livekit-runtime.js';
 
 const TABLE = 'livekit_voice_invites';
@@ -14,10 +14,11 @@ function livekitApi(config) {
   return new LiveKitAPI({ host: config.httpUrl, apiKey: config.apiKey, secret: config.apiSecret });
 }
 function baseUrl(req) {
-  const forwardedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  const host = forwardedHost.replace(/[^a-zA-Z0-9.:-]/g, '');
-  if (host) return 'https://' + host;
-  return String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  return resolvePublicBaseUrl({
+    configuredOrigin: process.env.PUBLIC_BASE_URL,
+    forwardedHost: req.headers['x-forwarded-host'],
+    host: req.headers.host,
+  });
 }
 
 
