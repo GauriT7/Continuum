@@ -16,6 +16,7 @@ function livekitApi(config) {
 function baseUrl(req) {
   return resolvePublicBaseUrl({
     configuredOrigin: process.env.PUBLIC_BASE_URL,
+    vercelProductionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL,
     forwardedHost: req.headers['x-forwarded-host'],
     host: req.headers.host,
   });
