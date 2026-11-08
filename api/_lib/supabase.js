@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
 export function getSupabaseForRequest(req) {
-  const url = (process.env.SUPABASE_URL || '').trim()
-  const anonKey = (process.env.SUPABASE_ANON_KEY || '').trim()
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim()
+  // The anon key is public by design. Vercel Preview may have only the VITE_
+  // alias configured for the browser bundle, so reuse it as a server fallback.
+  // Never use a service-role/secret key for this user-scoped client.
+  const anonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim()
 
   if (!url || !anonKey) {
     throw new Error('Missing Supabase environment variables.')
