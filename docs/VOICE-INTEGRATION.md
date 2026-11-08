@@ -28,7 +28,7 @@ Continuum currently retains two distinct paths pending a future, reviewed databa
    - Callback: `POST /api/voice-webhook?token={VOICE_WEBHOOK_SECRET}`
    - Requires a Sarvam campaign, its configured callback URL and an external scheduler.
 
-Consent changes are mirrored between the two consent tables. The campaign dispatcher now requires a matching, granted `voice_agent_consents` row for the exact patient phone number as well as the campaign preference. Existing campaign preferences that predate the mirror must be reconfirmed through the preference form before they can dispatch. This is intentionally fail-closed.
+Consent changes are mirrored between the two consent tables. The campaign dispatcher now requires a matching, granted `voice_agent_consents` row for the exact patient phone number as well as the campaign preference. The UI's `not_recorded` state is stored as `revoked` in the database because absence of consent is never permission to call. Existing campaign preferences that predate the mirror must be reconfirmed through the preference form before they can dispatch. This is intentionally fail-closed.
 
 ## Supabase schema migration
 
