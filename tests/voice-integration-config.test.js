@@ -38,6 +38,8 @@ test('instant calling remains unready until deployment and telephony are explici
 test('campaign dispatch remains unready until webhook and scheduler are confirmed', () => {
   const env = {
     CRON_SECRET:'cron',
+    SUPABASE_URL:'https://project.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY:'service-role',
     VOICE_WEBHOOK_SECRET:'webhook',
     SARVAM_API_KEY:'key',
     SARVAM_ORG_ID:'org',
