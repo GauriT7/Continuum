@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getSarvamApiKey, getCampaignVoiceMissingSettings } from './_lib/sarvam-config.js'
+import { isWithinIstCallingWindow, nextAllowedIstCallingTime } from './_lib/voice-safety.js'
 const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const db=()=>createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}})
 const languageName=code=>({'en-IN':'English','hi-IN':'Hindi','mr-IN':'Marathi'})[code]||'English'
@@ -27,7 +28,7 @@ export default async function handler(req,res){
   const clinicIds=[...new Set(claimed.map(x=>x.clinic_id))]
   const [pr,vr,cr,ar]=await Promise.all([
     supabase.from('patients').select('id,full_name,date_of_birth').in('id',patientIds),
-    supabase.from('voice_contact_preferences').select('patient_id,phone_e164,language_code,consent_status,contact_is_parent_guardian').in('patient_id',patientIds),
+    supabase.from('voice_contact_preferences').select('patient_id,phone_e164,language_code,consent_status,contact_is_parent_guardian,safe_start_time,safe_end_time').in('patient_id',patientIds),
     supabase.from('clinics').select('id,name').in('id',clinicIds),
     supabase.from('voice_agent_consents').select('patient_id,phone_e164,consent_status,opted_out,wrong_number,created_at').in('patient_id',patientIds).order('created_at',{ascending:false})
   ])
@@ -42,6 +43,8 @@ export default async function handler(req,res){
     if(!agentConsents.has(key))agentConsents.set(key,consent)
   }
   const users=[],blocked=[]
+  let deferred=0
+  const holidays=String(process.env.CALLING_HOLIDAYS||'').split(',').map(x=>x.trim()).filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x))
   for(const c of claimed){
     const p=patients.get(c.patient_id),v=prefs.get(c.patient_id),clinic=clinics.get(c.clinic_id),context=c.context||{}
     const age=ageInYears(p?.date_of_birth)
@@ -56,6 +59,17 @@ export default async function handler(req,res){
       !context.clinic_callback_sla||(requiresAppointment&&!context.appointment_datetime)||
       (c.purpose==='documents_pending'&&!context.callback_instruction)){
       blocked.push(c.id);continue
+    }
+    if(!isWithinIstCallingWindow(new Date(),v.safe_start_time||'09:00',v.safe_end_time||'18:00',holidays)){
+      const nextTime=nextAllowedIstCallingTime(new Date(),v.safe_start_time||'09:00',v.safe_end_time||'18:00',holidays)
+      const {error:deferError}=await supabase.from('voice_calls').update({
+        status:'scheduled',scheduled_at:nextTime.toISOString(),
+        failure_reason:'Deferred to the next permitted recipient calling window.',
+        updated_at:new Date().toISOString()
+      }).eq('id',c.id).eq('status','dispatching')
+      if(deferError){blocked.push(c.id);continue}
+      deferred+=1
+      continue
     }
     users.push({
       user_phone_number:v.phone_e164,
@@ -75,7 +89,7 @@ export default async function handler(req,res){
     })
   }
   if(blocked.length)await supabase.from('voice_calls').update({status:'blocked',failure_reason:'Consent or phone preference missing.'}).in('id',blocked)
-  if(!users.length)return res.status(200).json({ok:true,claimed:claimed.length,dispatched:0,blocked:blocked.length})
+  if(!users.length)return res.status(200).json({ok:true,claimed:claimed.length,dispatched:0,blocked:blocked.length,deferred})
   const url=`https://apps.sarvam.ai/api/scheduling/v1/orgs/${encodeURIComponent(process.env.SARVAM_ORG_ID)}/workspaces/${encodeURIComponent(process.env.SARVAM_WORKSPACE_ID)}/campaigns/${encodeURIComponent(process.env.SARVAM_CAMPAIGN_ID)}/cohorts/stream`
   try{
     const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':getSarvamApiKey()},body:JSON.stringify({name:`continuum-${Date.now()}`,users})})
@@ -83,7 +97,7 @@ export default async function handler(req,res){
     if(!response.ok)throw new Error(result?.detail||result?.message||`Sarvam returned ${response.status}`)
     const {error:updateError}=await supabase.from('voice_calls').update({status:'queued',sarvam_cohort_id:result.cohort_id,dispatched_at:new Date().toISOString(),updated_at:new Date().toISOString()}).in('id',users.map(u=>u.user_identifier))
     if(updateError)throw updateError
-    return res.status(200).json({ok:true,claimed:claimed.length,dispatched:users.length,blocked:blocked.length,cohort_id:result.cohort_id,cohort_status:result.status})
+    return res.status(200).json({ok:true,claimed:claimed.length,dispatched:users.length,blocked:blocked.length,deferred,cohort_id:result.cohort_id,cohort_status:result.status})
   }catch(e){
     await supabase.from('voice_calls').update({status:'dispatch_failed',failure_reason:String(e.message).slice(0,500)}).in('id',users.map(u=>u.user_identifier))
     return fail(res,502,e.message||'Sarvam dispatch failed.')
