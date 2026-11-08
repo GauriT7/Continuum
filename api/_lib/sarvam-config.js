@@ -36,6 +36,7 @@ export function getCampaignVoiceMissingSettings(env = process.env) {
     ['SARVAM_WORKSPACE_ID', env.SARVAM_WORKSPACE_ID],
     ['SARVAM_CAMPAIGN_ID', env.SARVAM_CAMPAIGN_ID],
     ['SARVAM_CAMPAIGN_WEBHOOK_CONFIGURED', env.SARVAM_CAMPAIGN_WEBHOOK_CONFIGURED === 'true'],
+    ['VOICE_DISPATCH_SCHEDULER_CONFIGURED', env.VOICE_DISPATCH_SCHEDULER_CONFIGURED === 'true'],
   ];
   return checks.filter(([, value]) => !value).map(([name]) => name);
 }
