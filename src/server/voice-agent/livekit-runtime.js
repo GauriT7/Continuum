@@ -1,5 +1,27 @@
 import crypto from 'node:crypto';
 
+function httpsOrigin(value) {
+  const candidate = String(value || '').trim();
+  if (!candidate) return '';
+  try {
+    const parsed = new URL(candidate.includes('://') ? candidate : 'https://' + candidate);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) return '';
+    return parsed.origin;
+  } catch {
+    return '';
+  }
+}
+
+export function resolvePublicBaseUrl({ configuredOrigin, forwardedHost, host } = {}) {
+  // A configured production origin must win over preview/deployment request hosts.
+  const configured = httpsOrigin(configuredOrigin);
+  if (configured) return configured;
+
+  const requestHost = String(forwardedHost || '').split(',')[0].trim() || String(host || '').trim();
+  const safeHost = requestHost.replace(/[^a-zA-Z0-9.:[\]-]/g, '');
+  return httpsOrigin(safeHost);
+}
+
 export function getLiveKitConfig(env = process.env) {
   const rawUrl = String(env.LIVEKIT_URL || '').trim().replace(/\/+$/, '');
   const apiKey = String(env.LIVEKIT_API_KEY || '').trim();
