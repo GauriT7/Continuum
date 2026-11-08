@@ -15,6 +15,7 @@ import {
 import './styles.css'
 import './design-system.css'
 import PatientSections from './PatientSections'
+import VoiceJoin from './VoiceJoin'
 
 const initialTasks = [
   {id:1,title:'Upload the latest blood test report',detail:'For your clinic file',date:'Today',tag:'Documents',done:false},
@@ -145,8 +146,8 @@ function FieldHome({notify,setActive,setWorkspace,updates,setUpdates,visitStates
   {showUpdate&&<div className="modal-backdrop" onClick={()=>setShowUpdate(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">FIELD NOTE</span><h2>Add a field update</h2></div><button className="icon-btn" type="button" onClick={()=>setShowUpdate(false)}><X/></button></div><p className="muted">Enter an administrative visit update. It stays in this demo session and is not submitted to a patient record.</p><textarea rows="4" value={updateText} onChange={e=>setUpdateText(e.target.value)} placeholder="Write what happened during the visit…"/><div className="modal-actions"><button className="btn-light" type="button" onClick={()=>setShowUpdate(false)}>Cancel</button><button className="btn-primary field-btn" type="button" disabled={!updateText.trim()} onClick={()=>{setUpdates(v=>[updateText.trim(),...v]);setUpdateText('');setShowUpdate(false);notify('Field update saved in this session')}}>Save update <Check size={14}/></button></div></div></div>}
  </div>
 }
+const isVoiceJoinRoute = window.location.pathname === '/voice/join'
+
 createRoot(document.getElementById('root')).render(
-  <AuthGate>
-    <App />
-  </AuthGate>
+  isVoiceJoinRoute ? <VoiceJoin /> : <AuthGate><App /></AuthGate>
 )

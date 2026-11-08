@@ -9,6 +9,7 @@ import {
 import './operations.css'
 import VoiceOutreach from './VoiceOutreach'
 import InstantVoiceAgent from './InstantVoiceAgent'
+import LiveKitCallLauncher from './LiveKitCallLauncher'
 import IntegrationsCentre from './IntegrationsCentre'
 import DemoOperationsPreview from './DemoOperationsPreview'
 
@@ -544,7 +545,7 @@ export default function OperationsCentre({ session, initialTab = 'patients', dem
         </div>
       </div>}
 
-      {tab === 'voice' && <><InstantVoiceAgent session={session} patients={patients} initialMessage={voiceText}/><details className="oc-legacy-voice"><summary>Existing scheduled campaign calling</summary><p className="oc-help">This is the existing cohort-based workflow. The new single-recipient Sarvam Voice Agent above uses a separate API, records and webhook.</p><VoiceOutreach session={session}/></details></>}
+      {tab === 'voice' && <><LiveKitCallLauncher session={session} patients={patients} appointments={data.appointments || []}/><details className="oc-legacy-voice"><summary>Legacy Sarvam and campaign calling (disabled)</summary><p className="oc-help">The existing telephone calling integrations are retained but disabled. LiveKit above provides browser-based internet voice sessions.</p><InstantVoiceAgent session={session} patients={patients} initialMessage={voiceText}/><VoiceOutreach session={session}/></details></>}
       {tab === 'integrations' && <IntegrationsCentre session={session} />}
               
     </>}

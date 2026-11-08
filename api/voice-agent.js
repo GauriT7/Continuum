@@ -4,6 +4,7 @@ import consentsHandler from '../src/server/voice-agent/routes/consents.js'
 import getCallHandler from '../src/server/voice-agent/routes/call-by-id.js'
 import contextHandler from '../src/server/voice-agent/routes/context.js'
 import webhookHandler from '../src/server/voice-agent/routes/webhook.js'
+import livekitHandler from '../src/server/voice-agent/routes/livekit.js'
 
 export const config = { maxDuration: 30 }
 
@@ -29,6 +30,10 @@ function matchRoute(req) {
   if (route.length === 2 && route[0] === 'context') {
     req.query = { ...(req.query || {}), id: route[1] }
     return { handler: contextHandler }
+  }
+  if (route.length === 2 && route[0] === 'livekit' && ['invites','join','complete'].includes(route[1])) {
+    req.query = { ...(req.query || {}), livekitAction: route[1] }
+    return { handler: livekitHandler }
   }
   if (route.length === 2 && route[0] === 'webhook') {
     req.query = { ...(req.query || {}), secret: route[1] }
