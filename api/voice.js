@@ -20,7 +20,8 @@ const ageInYears=dobValue=>{
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]))
   const year=Number(parts.year),month=Number(parts.month),day=Number(parts.day)
   const by=Number(match[1]),bm=Number(match[2]),bd=Number(match[3])
-  return year-by-((month<bm||(month===bm&&day<bd))?1:0)
+  const age=year-by-((month<bm||(month===bm&&day<bd))?1:0)
+  return age>=0?age:null
 }
 
 export default async function handler(req,res){
