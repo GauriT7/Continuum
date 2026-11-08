@@ -43,7 +43,7 @@ export async function syncCampaignConsentToAgent(db, {
 }) {
   const { data: existing, error: lookupError } = await db
     .from('voice_agent_consents')
-    .select('id,opted_out,wrong_number,consent_source')
+    .select('id,opted_out,opted_out_at,wrong_number,wrong_number_at,consent_source')
     .eq('patient_id', patient.id)
     .eq('phone_e164', phone)
     .maybeSingle();
