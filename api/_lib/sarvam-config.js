@@ -30,6 +30,8 @@ export function getInstantVoiceMissingSettings(env = process.env) {
 export function getCampaignVoiceMissingSettings(env = process.env) {
   const checks = [
     ['CRON_SECRET', env.CRON_SECRET],
+    ['SUPABASE_URL', env.SUPABASE_URL || env.VITE_SUPABASE_URL],
+    ['SUPABASE_SERVICE_ROLE_KEY', env.SUPABASE_SERVICE_ROLE_KEY],
     ['VOICE_WEBHOOK_SECRET', env.VOICE_WEBHOOK_SECRET],
     ['SARVAM_VOICE_API_KEY', getSarvamApiKey(env)],
     ['SARVAM_ORG_ID', env.SARVAM_ORG_ID],
