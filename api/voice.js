@@ -2,11 +2,13 @@ import { getSupabaseForRequest } from './_lib/supabase.js'
 import { createClient } from '@supabase/supabase-js'
 import { getCampaignVoiceMissingSettings } from './_lib/sarvam-config.js'
 import { syncCampaignConsentToAgent } from './_lib/voice-consent-sync.js'
+import { isWithinIstCallingWindow } from './_lib/voice-safety.js'
 
 const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
 const allowedLanguages=new Set(['en-IN','hi-IN','mr-IN'])
 const allowedPurposes=new Set(['appointment_confirmation','documents_pending','reschedule_request','postpartum_followup','callback_request'])
+const callingHolidays=String(process.env.CALLING_HOLIDAYS||'').split(',').map(x=>x.trim()).filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x))
 const adminDb=()=>{
   const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY
   if(!url||!key)throw new Error('Service role access is required to enforce call revocation.')
@@ -111,6 +113,9 @@ export default async function handler(req,res){
       const age=ageInYears(patient?.date_of_birth)
       if(age===null)return fail(res,409,'The clinic record needs a verified date of birth before the agent can establish adult or minor status.')
       if(age<18&&pref.contact_is_parent_guardian!==true)return fail(res,403,'For a minor, confirm that the calling number belongs to the parent or guardian before scheduling.')
+      if(!isWithinIstCallingWindow(scheduled,pref.safe_start_time||'09:00',pref.safe_end_time||'18:00',callingHolidays)) {
+        return fail(res,400,'Choose a call time within the recipient\'s saved calling window (India time, Monday–Saturday, 09:00–20:00, excluding configured holidays).')
+      }
       const since=new Date(Date.now()-7*24*60*60*1000).toISOString()
       const {data:recentCalls,error:recentError}=await supabase.from('voice_calls').select('id,status').eq('clinic_id',patient.clinic_id).eq('patient_id',patient.id).gte('created_at',since).limit(10)
       if(recentError)return fail(res,400,recentError.message)
