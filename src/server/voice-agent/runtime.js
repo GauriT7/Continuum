@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { getSarvamApiKey, getInstantVoiceMissingSettings } from '../../../api/_lib/sarvam-config.js';
 
 export const LANGUAGES = Object.freeze({
   'en-IN': { code: 'en-IN', label: 'English (India)', sarvamName: 'English' },
@@ -33,7 +34,7 @@ export function createVoiceConfig(env = process.env) {
     publicBaseUrl,
     contextStrategy,
     sarvam: {
-      apiKey: env.SARVAM_VOICE_API_KEY || '',
+      apiKey: getSarvamApiKey(env),
       orgId: env.SARVAM_ORG_ID || '',
       workspaceId: env.SARVAM_WORKSPACE_ID || '',
       appId: env.SARVAM_APP_ID || '',
@@ -48,14 +49,9 @@ export function createVoiceConfig(env = process.env) {
     holidays: String(env.CALLING_HOLIDAYS || '').split(',').map(x=>x.trim()).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)),
     maxMessageLength: 800,
   };
-  const required = [
-    ['SARVAM_VOICE_API_KEY',config.sarvam.apiKey],['SARVAM_ORG_ID',config.sarvam.orgId],
-    ['SARVAM_WORKSPACE_ID',config.sarvam.workspaceId],['SARVAM_APP_ID',config.sarvam.appId],
-    ['SARVAM_APP_VERSION',config.sarvam.appVersion],['SARVAM_CONNECTION_ID',config.sarvam.connectionId],
-    ['SARVAM_AGENT_PHONE_NUMBER',config.sarvam.agentPhoneNumber],
-    ['VOICE_AGENT_WEBHOOK_SECRET',config.webhookSecret],['PUBLIC_BASE_URL',config.publicBaseUrl],
-  ];
-  config.missingSettings = required.filter(([,value])=>!value).map(([name])=>name);
+  config.missingSettings = getInstantVoiceMissingSettings(env);
+  config.deploymentVerified = String(env.SARVAM_APP_DEPLOYED || '').toLowerCase() === 'true';
+  config.connectionVerified = String(env.SARVAM_CONNECTION_VERIFIED || '').toLowerCase() === 'true';
   if (contextStrategy === 'on_start_hook' && !config.contextHookSecret) config.missingSettings.push('VOICE_CONTEXT_HOOK_SECRET');
   return config;
 }
@@ -165,7 +161,7 @@ export function deriveOutcome({payload}) {
   const allowedResponses=new Set(['confirmed','repeated_and_confirmed','cannot_attend','callback_requested','wrong_person','opted_out','clinical_question_redirected','emergency_reported','unclear','no_response']);
   let response=allowedResponses.has(recipientResponse)?recipientResponse:'unclear';
   const identityVerified=bool(raw.identity_verified);
-  const wrongNumber=bool(raw.wrong_number)||response==='wrong_person';
+  const wrongNumber=bool(raw.wrong_number)||response==='wrong_person'||String(raw.call_disposition||'').toLowerCase()==='wrong_number';
   const optOut=bool(raw.opt_out)||response==='opted_out';
   const callbackRequested=bool(raw.callback_requested)||response==='callback_requested';
   const rescheduleRequested=bool(raw.reschedule_requested)||response==='cannot_attend';

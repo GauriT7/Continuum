@@ -70,6 +70,7 @@ export default async function handler(req,res){
     const {data:call,error:ce}=await supabase.from('voice_calls')
       .select('id,clinic_id,patient_id,attempt_count,status').eq('id',callId).single()
     if(ce||!call)return fail(res,404,'Continuum call record not found.')
+    const nextAttemptCount=Number(call.attempt_count||0)+1
 
     // The stored attempt ID is an idempotency key; duplicate provider delivery is acknowledged.
     const {data:existingAttempt,error:existingError}=await supabase.from('voice_call_attempts')
@@ -109,6 +110,27 @@ export default async function handler(req,res){
         consent_status:'revoked',consent_at:null,updated_at:now.toISOString()
       }).eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id)
       if(revokeError)return fail(res,500,revokeError.message)
+      const {data:preference,error:preferenceError}=await supabase.from('voice_contact_preferences').select('phone_e164,consent_recorded_by,contact_is_parent_guardian').eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id).maybeSingle()
+      if(preferenceError)return fail(res,500,preferenceError.message)
+      if(preference?.phone_e164) {
+        const {data:existingConsent,error:existingConsentError}=await supabase.from('voice_agent_consents').select('id,consent_source,consent_recorded_by,guardian_confirmed,opted_out,opted_out_at,wrong_number,wrong_number_at').eq('patient_id',call.patient_id).eq('phone_e164',preference.phone_e164).maybeSingle()
+        if(existingConsentError)return fail(res,500,existingConsentError.message)
+        // Campaign-originated opt-outs must also block the instant-call path.
+        // Do not insert a synthetic consent row here: the instant consent schema
+        // requires a real staff recorder and an explicit consent source.
+        if(existingConsent){
+          const {error:syncError}=await supabase.from('voice_agent_consents').update({
+            consent_status:'revoked',
+            consent_recorded_at:now.toISOString(),
+            opted_out:optedOut||existingConsent.opted_out===true,
+            opted_out_at:optedOut?now.toISOString():existingConsent.opted_out_at,
+            wrong_number:outcome==='wrong_number'||existingConsent.wrong_number===true,
+            wrong_number_at:outcome==='wrong_number'?now.toISOString():existingConsent.wrong_number_at,
+            updated_at:now.toISOString()
+          }).eq('id',existingConsent.id)
+          if(syncError)return fail(res,500,'Could not synchronize the opt-out / wrong-number block.')
+        }
+      }
       const {error:blockError}=await supabase.from('voice_calls').update({
         status:'blocked',failure_reason:optedOut?'Patient or authorised family member opted out.':'Wrong number; clinic must re-verify contact details.',updated_at:now.toISOString()
       }).eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id)
@@ -119,6 +141,7 @@ export default async function handler(req,res){
 
     const update={
       status:nextStatus,call_outcome:outcome,call_duration:outputs.duration_seconds,
+      attempt_count:nextAttemptCount,
       callback_requested:outputs.callback_requested,failure_reason:shortText(b.failure_reason,300)||null,
       completed_at:nextStatus==='scheduled'?null:now.toISOString(),updated_at:now.toISOString()
     }
