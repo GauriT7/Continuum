@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/voice-agent-sarvam-integration
+      - feature/livekit-web-calls
   pull_request:
     branches:
       - main

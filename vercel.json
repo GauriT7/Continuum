@@ -3,6 +3,10 @@
     {
       "source": "/api/voice-agent/:path*",
       "destination": "/api/voice-agent?path=:path*"
+    },
+    {
+      "source": "/voice/join",
+      "destination": "/"
     }
   ]
 }
