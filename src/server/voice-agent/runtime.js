@@ -50,7 +50,6 @@ export function createVoiceConfig(env = process.env) {
     maxMessageLength: 800,
   };
   config.missingSettings = getInstantVoiceMissingSettings(env);
-  config.deploymentVerified = String(env.SARVAM_APP_DEPLOYED || '').toLowerCase() === 'true';
   config.connectionVerified = String(env.SARVAM_CONNECTION_VERIFIED || '').toLowerCase() === 'true';
   if (contextStrategy === 'on_start_hook' && !config.contextHookSecret) config.missingSettings.push('VOICE_CONTEXT_HOOK_SECRET');
   return config;
