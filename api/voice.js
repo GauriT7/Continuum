@@ -1,5 +1,7 @@
 import { getSupabaseForRequest } from './_lib/supabase.js'
 import { createClient } from '@supabase/supabase-js'
+import { getCampaignVoiceMissingSettings } from './_lib/sarvam-config.js'
+import { syncCampaignConsentToAgent } from './_lib/voice-consent-sync.js'
 
 const fail=(res,status,error)=>res.status(status).json({ok:false,error})
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
@@ -37,11 +39,7 @@ export default async function handler(req,res){
       ])
       const bad=[patients,prefs,calls].find(x=>x.error)
       if(bad)return fail(res,400,bad.error.message)
-      const dispatchRequired = [
-        'CRON_SECRET', 'VOICE_WEBHOOK_SECRET', 'SARVAM_VOICE_API_KEY',
-        'SARVAM_ORG_ID', 'SARVAM_WORKSPACE_ID', 'SARVAM_CAMPAIGN_ID'
-      ]
-      const missingDispatchSettings = dispatchRequired.filter(name => !process.env[name])
+      const missingDispatchSettings = getCampaignVoiceMissingSettings()
       const dispatchEnabled = process.env.VOICE_DISPATCH_ENABLED === 'true'
       const dispatchConfigured = missingDispatchSettings.length === 0
       return res.status(200).json({
@@ -65,15 +63,28 @@ export default async function handler(req,res){
       if(b.consent_status==='granted'&&typeof b.contact_is_parent_guardian!=='boolean')return fail(res,400,'Confirm whether this number belongs to the patient or, for a minor, the parent/guardian.')
       const {data:patient,error:pe}=await supabase.from('patients').select('id,clinic_id,date_of_birth').eq('id',b.patient_id).single()
       if(pe||!clinicIds.includes(patient?.clinic_id))return fail(res,403,'Patient is not in your clinic.')
+      const age=ageInYears(patient.date_of_birth)
+      if(age===null)return fail(res,409,'A verified date of birth is required before automated-call consent can be recorded.')
+      if(b.consent_status==='granted'&&age<18&&b.contact_is_parent_guardian!==true)return fail(res,403,'For a minor, confirm that this number belongs to the parent or legal guardian.')
+      const admin=adminDb()
+      try {
+        await syncCampaignConsentToAgent(admin,{patient,phone:b.phone_e164,status:b.consent_status,source:'digital_form',recordedBy:auth.user.id,guardianConfirmed:b.contact_is_parent_guardian===true})
+      } catch(syncError) {
+        return fail(res,syncError.code==='opted_out'||syncError.code==='wrong_number'?403:500,syncError.message||'Consent could not be synchronized.')
+      }
       const {data,error}=await supabase.from('voice_contact_preferences').upsert({
         clinic_id:patient.clinic_id,patient_id:patient.id,phone_e164:b.phone_e164,language_code:b.language_code,
         consent_status:b.consent_status,consent_at:b.consent_status==='granted'?new Date().toISOString():null,
         consent_recorded_by:auth.user.id,safe_start_time:b.safe_start_time||'09:00',
         safe_end_time:safeEnd,contact_is_parent_guardian:b.contact_is_parent_guardian===true,timezone:'Asia/Kolkata',updated_at:new Date().toISOString()
       },{onConflict:'patient_id'}).select().single()
-      if(error)return fail(res,400,error.message)
+      if(error){
+        if(b.consent_status==='granted') {
+          await admin.from('voice_agent_consents').update({consent_status:'revoked',updated_at:new Date().toISOString()}).eq('patient_id',patient.id).eq('phone_e164',b.phone_e164)
+        }
+        return fail(res,400,error.message)
+      }
       if(b.consent_status!=='granted'){
-        const admin=adminDb()
         const {error:blockError}=await admin.from('voice_calls').update({
           status:'blocked',failure_reason:'Patient calling consent is not active.',updated_at:new Date().toISOString()
         }).eq('patient_id',patient.id).eq('clinic_id',patient.clinic_id)
@@ -91,8 +102,12 @@ export default async function handler(req,res){
       if(!b.scheduled_at||Number.isNaN(scheduled.getTime())||scheduled<=new Date())return fail(res,400,'Choose a future call date and time.')
       const {data:patient,error:pe}=await supabase.from('patients').select('id,clinic_id,date_of_birth').eq('id',b.patient_id).single()
       if(pe||!clinicIds.includes(patient?.clinic_id))return fail(res,403,'Patient is not in your clinic.')
-      const {data:pref,error:fe}=await supabase.from('voice_contact_preferences').select('consent_status,language_code,contact_is_parent_guardian').eq('patient_id',b.patient_id).single()
+      const {data:pref,error:fe}=await supabase.from('voice_contact_preferences').select('consent_status,language_code,contact_is_parent_guardian,phone_e164').eq('patient_id',b.patient_id).single()
       if(fe||!pref||pref.consent_status!=='granted')return fail(res,403,'Valid patient consent is required before scheduling a call.')
+      const admin=adminDb()
+      const {data:agentConsent,error:agentConsentError}=await admin.from('voice_agent_consents').select('consent_status,opted_out,wrong_number').eq('patient_id',b.patient_id).eq('phone_e164',pref.phone_e164).maybeSingle()
+      if(agentConsentError)return fail(res,500,'Could not verify unified calling consent.')
+      if(!agentConsent||agentConsent.consent_status!=='granted'||agentConsent.opted_out||agentConsent.wrong_number)return fail(res,403,'Reconfirm consent for this exact phone number before scheduling outreach.')
       const age=ageInYears(patient?.date_of_birth)
       if(age===null)return fail(res,409,'The clinic record needs a verified date of birth before the agent can establish adult or minor status.')
       if(age<18&&pref.contact_is_parent_guardian!==true)return fail(res,403,'For a minor, confirm that the calling number belongs to the parent or guardian before scheduling.')
