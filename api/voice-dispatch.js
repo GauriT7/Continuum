@@ -67,7 +67,15 @@ export default async function handler(req,res){
         failure_reason:'Deferred to the next permitted recipient calling window.',
         updated_at:new Date().toISOString()
       }).eq('id',c.id).eq('status','dispatching')
-      if(deferError){blocked.push(c.id);continue}
+      if(deferError){
+        await supabase.from('voice_calls').update({
+          status:'blocked',
+          failure_reason:'Could not defer call to a permitted recipient calling window.',
+          updated_at:new Date().toISOString()
+        }).eq('id',c.id).eq('status','dispatching')
+        blocked.push(c.id)
+        continue
+      }
       deferred+=1
       continue
     }
