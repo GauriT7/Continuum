@@ -32,7 +32,7 @@ Consent changes are mirrored between the two consent tables. The campaign dispat
 
 ## Vercel environment variables
 
-Configure values in Vercel Project Settings → Environment Variables. Keep all API keys, service-role keys and webhook/cron secrets as **Secret** values. Never prefix secrets with `VITE_`.
+Configure values in Vercel Project Settings → Environment Variables. Keep all API keys, service-role keys and webhook/cron secrets as **Secret** values. Never prefix secrets with `VITE_`. The legacy `SARVAM_API_KEY` remains accepted as the voice API key fallback; Sarvam documents an account API subscription key for its API endpoints, with Voice Agent endpoints using the `X-API-Key` header. Keep `SARVAM_VOICE_API_KEY` as the clearer preferred name if you want to distinguish the same credential.
 
 ### Supabase
 
@@ -76,13 +76,15 @@ The instant calling readiness endpoint also uses Vercel's `VERCEL_PROJECT_PRODUC
 | Variable | Type | Notes |
 |---|---|---|
 | `SARVAM_CAMPAIGN_ID` | Config | Existing Sarvam outbound campaign |
+| `SUPABASE_URL` | Config | Database endpoint used by dispatcher |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Server-only dispatcher database access |
 | `VOICE_WEBHOOK_SECRET` | Secret | Token used by `/api/voice-webhook?token=...` |
 | `CRON_SECRET` | Secret | Bearer token required by `/api/voice-dispatch` |
 | `SARVAM_CAMPAIGN_WEBHOOK_CONFIGURED` | Config | Set to `true` only after the exact callback URL is saved in Sarvam campaign Advanced settings |
 | `VOICE_DISPATCH_SCHEDULER_CONFIGURED` | Config | Set to `true` only after an external scheduler is configured and verified |
 | `VOICE_DISPATCH_ENABLED` | Config | Keep `false` until campaign + webhook + scheduler tests pass |
 
-There is currently no `crons` entry in `vercel.json`. Therefore, scheduled calls can be created in Supabase but will not automatically dispatch until a scheduler is configured. A scheduler must invoke `POST https://<production-domain>/api/voice-dispatch` with `Authorization: Bearer <CRON_SECRET>`. Do not mark `VOICE_DISPATCH_SCHEDULER_CONFIGURED=true` before this is operational. Confirm the chosen scheduler's frequency and Vercel plan limits before enabling it.
+There is currently no `crons` entry in `vercel.json`. The repository already includes `supabase-cron-setup.sql`, which uses Supabase `pg_cron`, `pg_net` and Vault to invoke `POST https://<production-domain>/api/voice-dispatch` every minute with `Authorization: Bearer <CRON_SECRET>`. Enable the required Supabase extensions, store the production URL and the exact Vercel `CRON_SECRET` in Vault, then run the SQL once. Verify successful runs in Supabase Cron before setting `VOICE_DISPATCH_SCHEDULER_CONFIGURED=true`. Until this is done, scheduled call records will remain queued/scheduled and will not dispatch automatically.
 
 ## Webhook contracts and limitations
 
