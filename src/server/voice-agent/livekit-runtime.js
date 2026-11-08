@@ -12,10 +12,12 @@ function httpsOrigin(value) {
   }
 }
 
-export function resolvePublicBaseUrl({ configuredOrigin, forwardedHost, host } = {}) {
-  // A configured production origin must win over preview/deployment request hosts.
+export function resolvePublicBaseUrl({ configuredOrigin, vercelProductionUrl, forwardedHost, host } = {}) {
+  // Explicit configuration wins; Vercel's project production domain is available on preview deployments too.
   const configured = httpsOrigin(configuredOrigin);
   if (configured) return configured;
+  const vercelProduction = httpsOrigin(vercelProductionUrl);
+  if (vercelProduction) return vercelProduction;
 
   const requestHost = String(forwardedHost || '').split(',')[0].trim() || String(host || '').trim();
   const safeHost = requestHost.replace(/[^a-zA-Z0-9.:[\]-]/g, '');
