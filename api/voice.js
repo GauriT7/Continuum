@@ -77,7 +77,8 @@ export default async function handler(req,res){
       }
       const {data,error}=await supabase.from('voice_contact_preferences').upsert({
         clinic_id:patient.clinic_id,patient_id:patient.id,phone_e164:b.phone_e164,language_code:b.language_code,
-        consent_status:b.consent_status,consent_at:b.consent_status==='granted'?new Date().toISOString():null,
+        consent_status:b.consent_status==='granted'?'granted':'revoked',
+        consent_at:b.consent_status==='granted'?new Date().toISOString():null,
         consent_recorded_by:auth.user.id,safe_start_time:b.safe_start_time||'09:00',
         safe_end_time:safeEnd,contact_is_parent_guardian:b.contact_is_parent_guardian===true,timezone:'Asia/Kolkata',updated_at:new Date().toISOString()
       },{onConflict:'patient_id'}).select().single()
