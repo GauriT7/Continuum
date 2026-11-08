@@ -21,7 +21,6 @@ export function getInstantVoiceMissingSettings(env = process.env) {
     ['SARVAM_AGENT_PHONE_NUMBER', env.SARVAM_AGENT_PHONE_NUMBER],
     ['VOICE_AGENT_WEBHOOK_SECRET', env.VOICE_AGENT_WEBHOOK_SECRET],
     ['PUBLIC_BASE_URL', baseUrl],
-    ['SARVAM_APP_DEPLOYED', env.SARVAM_APP_DEPLOYED === 'true'],
     ['SARVAM_CONNECTION_VERIFIED', env.SARVAM_CONNECTION_VERIFIED === 'true'],
   ];
   return checks.filter(([, value]) => !value).map(([name]) => name);
