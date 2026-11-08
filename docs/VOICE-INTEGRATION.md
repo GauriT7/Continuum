@@ -30,6 +30,10 @@ Continuum currently retains two distinct paths pending a future, reviewed databa
 
 Consent changes are mirrored between the two consent tables. The campaign dispatcher now requires a matching, granted `voice_agent_consents` row for the exact patient phone number as well as the campaign preference. Existing campaign preferences that predate the mirror must be reconfirmed through the preference form before they can dispatch. This is intentionally fail-closed.
 
+## Supabase schema migration
+
+Before deploying these code changes to a database that has not already been updated, run `supabase-voice-integration-unification-migration.sql` in Supabase SQL Editor. It additively supplies the guardian-contact and campaign attempt-count columns and expands the campaign purpose constraint while retaining legacy values. The base `supabase-voice-migration.sql` has also been updated for fresh installations. Do not assume a checked-in SQL file has been applied to the live database; verify the columns and constraint in Supabase after running it.
+
 ## Vercel environment variables
 
 Configure values in Vercel Project Settings → Environment Variables. Keep all API keys, service-role keys and webhook/cron secrets as **Secret** values. Never prefix secrets with `VITE_`. The legacy `SARVAM_API_KEY` remains accepted as the voice API key fallback; Sarvam documents an account API subscription key for its API endpoints, with Voice Agent endpoints using the `X-API-Key` header. Keep `SARVAM_VOICE_API_KEY` as the clearer preferred name if you want to distinguish the same credential.
