@@ -39,6 +39,10 @@ export default async function handler(req,res){
         wrong_number:result.wrongNumber,wrong_number_at:result.wrongNumber?now:null,updated_at:now,
       }).eq('patient_id',call.patient_id).eq('phone_e164',call.phone_e164);
       if(consentError){await db.from('voice_agent_webhook_events').delete().eq('attempt_id',payload.attempt_id).eq('provider_status',payload.status);return fail(res,500,'Consent and opt-out status could not be updated.');}
+      const {error:campaignConsentError}=await db.from('voice_contact_preferences').update({
+        consent_status:'revoked',consent_at:null,updated_at:now,
+      }).eq('patient_id',call.patient_id).eq('clinic_id',call.clinic_id);
+      if(campaignConsentError){await db.from('voice_agent_webhook_events').delete().eq('attempt_id',payload.attempt_id).eq('provider_status',payload.status);return fail(res,500,'Campaign consent could not be synchronized.');}
     }
     if(result.callbackRequested||result.rescheduleRequested||result.wrongNumber||result.optOut||result.recipientResponse==='clinical_question_redirected'||result.recipientResponse==='emergency_reported'){
       const detail=[
