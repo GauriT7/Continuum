@@ -171,7 +171,7 @@ class VoiceJoinErrorBoundary extends React.Component {
   }
 }
 
-const normalizedPath = window.location.pathname.replace(/\\/+$/, '') || '/'
+const normalizedPath = '/' + window.location.pathname.split('/').filter(Boolean).join('/')
 const isVoiceJoinRoute = normalizedPath === '/voice/join'
 
 createRoot(document.getElementById('root')).render(
